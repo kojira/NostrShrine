@@ -56,8 +56,8 @@ export function VideoGenerator() {
   // Sora生成用
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('sora-api-key') || '')
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
-  const [model, setModel] = useState<'sora-1.5' | 'sora-turbo'>('sora-turbo')
-  const [duration, setDuration] = useState(5)
+  const [size, setSize] = useState<'1280x720' | '1920x1080' | '720x1280' | '1080x1920'>('1280x720')
+  const [seconds, setSeconds] = useState(5)
   
   // ローカルアップロード用
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -92,8 +92,8 @@ export function VideoGenerator() {
       
       await generateAndUploadVideo(apiKey, {
         prompt,
-        model,
-        duration,
+        size,
+        seconds,
       })
       
       setSuccess('動画を生成してアップロードしました！')
@@ -212,28 +212,31 @@ export function VideoGenerator() {
             
             <Stack direction="row" spacing={2}>
               <FormControl fullWidth disabled={isProcessing}>
-                <InputLabel>モデル</InputLabel>
+                <InputLabel>解像度</InputLabel>
                 <Select
-                  value={model}
-                  onChange={(e) => setModel(e.target.value as 'sora-1.5' | 'sora-turbo')}
-                  label="モデル"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value as '1280x720' | '1920x1080' | '720x1280' | '1080x1920')}
+                  label="解像度"
                 >
-                  <MenuItem value="sora-turbo">Sora Turbo（高速）</MenuItem>
-                  <MenuItem value="sora-1.5">Sora 1.5（高品質）</MenuItem>
+                  <MenuItem value="1280x720">1280x720 (HD横)</MenuItem>
+                  <MenuItem value="1920x1080">1920x1080 (Full HD横)</MenuItem>
+                  <MenuItem value="720x1280">720x1280 (HD縦)</MenuItem>
+                  <MenuItem value="1080x1920">1080x1920 (Full HD縦)</MenuItem>
                 </Select>
               </FormControl>
               
               <FormControl fullWidth disabled={isProcessing}>
                 <InputLabel>動画の長さ</InputLabel>
                 <Select
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
+                  value={seconds}
+                  onChange={(e) => setSeconds(Number(e.target.value))}
                   label="動画の長さ"
                 >
                   <MenuItem value={3}>3秒</MenuItem>
                   <MenuItem value={5}>5秒</MenuItem>
                   <MenuItem value={10}>10秒</MenuItem>
                   <MenuItem value={15}>15秒</MenuItem>
+                  <MenuItem value={20}>20秒</MenuItem>
                 </Select>
               </FormControl>
             </Stack>
