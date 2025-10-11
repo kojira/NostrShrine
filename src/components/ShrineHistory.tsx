@@ -22,20 +22,24 @@ import PersonIcon from '@mui/icons-material/Person'
 import { useShrineHistory } from '../hooks/useShrineHistory'
 
 export function ShrineHistory() {
-  const { history, isLoading, error, fetchHistory } = useShrineHistory()
+  const { history, isLoading, error, fetchHistory, loadMore, hasMore, page } = useShrineHistory()
   
   // 初回マウント時と定期的に履歴を取得
   useEffect(() => {
-    fetchHistory()
+    fetchHistory(1)
     
     // 30秒ごとに更新
     const interval = setInterval(() => {
-      fetchHistory()
+      fetchHistory(1)
     }, 30000)
     
     return () => clearInterval(interval)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  
+  const handleRefresh = () => {
+    fetchHistory(1)
+  }
   
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000)
@@ -64,7 +68,7 @@ export function ShrineHistory() {
         </Typography>
         <Button
           startIcon={<RefreshIcon />}
-          onClick={fetchHistory}
+          onClick={handleRefresh}
           disabled={isLoading}
           size="small"
           sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
@@ -175,9 +179,22 @@ export function ShrineHistory() {
       )}
       
       {!isLoading && history.length > 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-          全{history.length}件の参拝記録
-        </Typography>
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+            {history.length}件の参拝記録を表示中 {page > 1 && `(ページ ${page})`}
+          </Typography>
+          {hasMore && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={loadMore}
+              disabled={isLoading}
+              sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
+              {isLoading ? '読み込み中...' : 'さらに読み込む (次の50件)'}
+            </Button>
+          )}
+        </Box>
       )}
     </Box>
   )

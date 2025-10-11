@@ -18,49 +18,86 @@ interface ShrineVisitRecord {
   profile?: Profile
 }
 
+const PAGE_SIZE = 50
+
 export function useShrineHistory() {
   const { cachedClient, subscribe, unsubscribe } = useRelay()
   const [history, setHistory] = useState<ShrineVisitRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (pageNum: number = 1) => {
     setIsLoading(true)
     setError(null)
     
     try {
-      // 参拝履歴を取得（全ユーザー）
+      // 参拝履歴を取得（ページごと）
+      const limit = PAGE_SIZE
+      
       const events = await cachedClient.fetchEvents(
-        [{ kinds: [KIND.SHRINE_VISIT], limit: 100 }],
+        [{ kinds: [KIND.SHRINE_VISIT], limit }],
         {
           onCache: async (cached) => {
             // キャッシュから取得できたら即座に表示
             const records = await parseEventsWithProfiles(cached)
-            setHistory(records)
+            if (pageNum === 1) {
+              setHistory(records)
+            } else {
+              setHistory(prev => [...prev, ...records])
+            }
             setIsLoading(false)
           },
           onRelay: async (newEvents) => {
             // リレーから新しいイベントを取得したら追加
             const newRecords = await parseEventsWithProfiles(newEvents)
-            setHistory(prev => {
-              const combined = [...prev, ...newRecords]
-              return combined.sort((a, b) => b.timestamp - a.timestamp)
-            })
+            if (pageNum === 1) {
+              setHistory(newRecords)
+            } else {
+              setHistory(prev => {
+                const combined = [...prev, ...newRecords]
+                // 重複を除去
+                const unique = Array.from(new Map(combined.map(r => [r.id, r])).values())
+                return unique.sort((a, b) => b.timestamp - a.timestamp)
+              })
+            }
           }
         }
       )
       
       const records = await parseEventsWithProfiles(events)
-      setHistory(records)
+      
+      // 取得件数がPAGE_SIZE未満なら、これ以上データがない
+      setHasMore(records.length >= PAGE_SIZE)
+      
+      if (pageNum === 1) {
+        setHistory(records)
+      } else {
+        setHistory(prev => {
+          const combined = [...prev, ...records]
+          // 重複を除去
+          const unique = Array.from(new Map(combined.map(r => [r.id, r])).values())
+          return unique.sort((a, b) => b.timestamp - a.timestamp)
+        })
+      }
+      
+      setPage(pageNum)
       setIsLoading(false)
       
-      console.log(`[History] Loaded ${records.length} shrine visits`)
+      console.log(`[History] Loaded ${records.length} shrine visits (page ${pageNum})`)
     } catch (err) {
       console.error('[History] Failed to fetch:', err)
       setError('履歴の取得に失敗しました')
       setIsLoading(false)
     }
   }, [cachedClient])
+  
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      fetchHistory(page + 1)
+    }
+  }, [page, isLoading, hasMore, fetchHistory])
   
   const parseEventsWithProfiles = async (events: NostrEvent[]): Promise<ShrineVisitRecord[]> => {
     // イベントをパース
@@ -138,5 +175,8 @@ export function useShrineHistory() {
     isLoading,
     error,
     fetchHistory,
+    loadMore,
+    hasMore,
+    page,
   }
 }
