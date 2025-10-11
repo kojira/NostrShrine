@@ -5,18 +5,23 @@ Nostr上で動作する、完全フロントエンドの神社アプリケーシ
 ## 🌟 特徴
 
 - **🙏 参拝機能**: 参拝記録をNostr (kind 3081) に保存
-- **🎴 おみくじ**: 運勢をランダムに引いて、結果をNostrに投稿可能
+- **🎴 おみくじ**: 事前生成されたおみくじをランダムに引いて、結果をNostrに投稿可能
+- **⏱️ クールダウン制限**: おみくじは指定時間（デフォルト60分）ごとに1回引ける時間ベース制限
+- **📜 参拝履歴**: すべてのユーザーの参拝記録をプロフィール付きで表示
 - **🔐 NIP-07認証**: ブラウザ拡張機能（Alby, nos2x等）による安全な認証
 - **⚡ 完全フロントエンド**: バックエンド不要、すべてNostrリレー経由
+- **💾 IndexedDBキャッシュ**: イベントをローカルキャッシュして高速表示
 - **🦀 rust-nostr WASM**: 高性能なrust-nostrをWebAssemblyで利用
 - **🎨 神社テーマ**: 朱色と金色をベースとした和のデザイン
-- **🤖 LLM生成**: 管理者はOpenAI APIを使っておみくじを自動生成
+- **🤖 LLM生成**: 管理者はOpenAI APIを使っておみくじを自動生成（運勢別・割合指定可能）
 
 ## 📦 技術スタック
 
 - **フロントエンド**: React + TypeScript + Vite
 - **UI**: Material-UI (MUI)
 - **Nostr**: rust-nostr (WASMバインディング自作)
+- **キャッシュ**: IndexedDB (idb-keyval)
+- **ルーティング**: React Router
 - **LLM**: OpenAI API (gpt-4o-mini)
 - **デプロイ**: GitHub Pages
 
@@ -33,7 +38,7 @@ Nostr上で動作する、完全フロントエンドの神社アプリケーシ
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/yourusername/NostrShrine.git
+git clone https://github.com/kojira/NostrShrine.git
 cd NostrShrine
 
 # 依存関係をインストール
@@ -44,9 +49,9 @@ cd rust-nostr-wasm
 wasm-pack build --target web --out-dir ../src/wasm
 cd ..
 
-# 環境変数を設定
+# 環境変数を設定（オプション）
 cp .env.example .env
-# .envを編集して管理者の公開鍵を設定
+# .envを編集して管理者の公開鍵を設定（管理者機能を使う場合のみ）
 ```
 
 ### 開発サーバー起動
@@ -82,15 +87,18 @@ VITE_DEFAULT_RELAY=wss://r.kojira.io
 1. NIP-07対応のブラウザ拡張機能（Alby, nos2x等）をインストール
 2. 「ログイン」ボタンをクリックして認証
 3. **参拝する**: 参拝記録をNostrに投稿
-4. **おみくじを引く**: ランダムでおみくじを引いて、結果をNostrに投稿可能
+4. **おみくじを引く**: 事前生成されたおみくじをランダムに引く（設定された時間間隔ごとに1回）
+5. **参拝履歴を見る**: すべてのユーザーの参拝記録をプロフィール付きで確認
 
 ### 管理者
 
-管理者として認証すると、追加の機能が利用できます：
+管理者として認証すると、`/admin`ページで追加の機能が利用できます：
 
-1. **おみくじ生成**: OpenAI APIキーを設定し、LLMでおみくじを生成
-2. **一括生成**: 複数のおみくじを一度に生成してNostrに保存
-3. **リレー管理**: 接続するリレーの追加・削除
+1. **アプリケーション設定**: おみくじクールダウン時間（分）を設定
+2. **おみくじ生成**: OpenAI APIキーを設定し、LLMでおみくじを生成
+   - 運勢を指定して生成（大吉、中吉、小吉、吉、末吉、凶、大凶）
+   - 運勢の割合を指定して一括生成
+3. **おみくじ一覧**: 生成済みのおみくじをページング表示、デバッグ用にJSON確認可能
 
 ## 📋 Nostrイベント仕様
 
@@ -152,10 +160,20 @@ VITE_DEFAULT_RELAY=wss://r.kojira.io
 ```json
 {
   "kind": 10394,
-  "content": "{\"daily_omikuji_limit\":3,\"relays\":[\"wss://r.kojira.io\"]}",
+  "content": "{\"omikujiCooldownMinutes\":60,\"relays\":[\"wss://r.kojira.io\"]}",
   "tags": [
     ["d", "nostrshrine-settings"]
   ]
+}
+```
+
+### kind 0: ユーザープロフィール（参拝履歴に表示）
+
+```json
+{
+  "kind": 0,
+  "content": "{\"name\":\"ユーザー名\",\"display_name\":\"表示名\",\"picture\":\"https://...\"}",
+  "tags": []
 }
 ```
 
@@ -170,19 +188,36 @@ NostrShrine/
 ├── src/
 │   ├── components/         # Reactコンポーネント
 │   │   ├── admin/          # 管理者用コンポーネント
+│   │   │   ├── Settings.tsx        # アプリケーション設定
+│   │   │   ├── OmikujiGenerator.tsx # おみくじ生成
+│   │   │   └── OmikujiList.tsx     # おみくじ一覧
 │   │   ├── ShrineVisit.tsx # 参拝コンポーネント
-│   │   └── Omikuji.tsx     # おみくじコンポーネント
+│   │   ├── Omikuji.tsx     # おみくじコンポーネント
+│   │   └── ShrineHistory.tsx # 参拝履歴
+│   ├── pages/              # ページコンポーネント
+│   │   ├── HomePage.tsx    # メインページ
+│   │   └── AdminPage.tsx   # 管理者ページ
 │   ├── contexts/           # React Context
 │   │   ├── AuthContext.tsx # 認証管理
 │   │   ├── RelayContext.tsx # リレー接続管理
 │   │   └── AdminContext.tsx # 管理者権限管理
 │   ├── hooks/              # カスタムフック
+│   │   ├── useOmikuji.ts         # おみくじ引く機能
+│   │   ├── useOmikujiGenerator.ts # おみくじ生成
+│   │   ├── useOmikujiList.ts     # おみくじ一覧
+│   │   ├── useShrineHistory.ts   # 参拝履歴
+│   │   ├── useSettings.ts        # 設定取得
+│   │   └── useAdmin.ts           # 管理者権限
 │   ├── lib/
-│   │   └── nostr/          # Nostrクライアント
-│   │       ├── client.ts   # WASMラッパー
-│   │       ├── nip07.ts    # NIP-07実装
-│   │       ├── relay.ts    # リレー接続
-│   │       └── events.ts   # イベント作成
+│   │   ├── nostr/          # Nostrクライアント
+│   │   │   ├── client.ts   # WASMラッパー
+│   │   │   ├── nip07.ts    # NIP-07実装
+│   │   │   ├── relay.ts    # リレー接続
+│   │   │   ├── events.ts   # イベント作成
+│   │   │   └── cachedRelay.ts # キャッシュ統合クライアント
+│   │   └── cache/          # キャッシュ機構
+│   │       ├── eventCache.ts   # イベントキャッシュ
+│   │       └── profileCache.ts # プロフィールキャッシュ
 │   ├── services/
 │   │   └── llm/            # LLM統合
 │   │       ├── types.ts
