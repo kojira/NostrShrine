@@ -356,7 +356,7 @@ function AppContent() {
                 }
               }}
             >
-              Powered by Nostr · Built with rust-nostr WASM
+              View Source on GitHub · ⭐ Star us if you like it!
             </Typography>
           </a>
         </Box>
