@@ -1,12 +1,16 @@
 /**
  * WebCodecs API を使った動画圧縮
+ * 
+ * 注意: WebCodecs圧縮は複雑で失敗する可能性があるため、
+ * 圧縮なしのオプションも提供する
  */
 
 export interface VideoCompressionOptions {
-  targetBitrate?: number // bps (デフォルト: 1Mbps)
+  targetBitrate?: number // bps (デフォルト: 2Mbps)
   targetWidth?: number   // 幅 (デフォルト: 元の幅)
   targetHeight?: number  // 高さ (デフォルト: 元の高さ)
   codec?: string         // コーデック (デフォルト: 'vp09.00.10.08')
+  skipCompression?: boolean // 圧縮をスキップ (デフォルト: false)
 }
 
 /**
@@ -23,15 +27,22 @@ export async function compressVideo(
   inputFile: File,
   options: VideoCompressionOptions = {}
 ): Promise<File> {
+  const {
+    targetBitrate = 2_000_000, // 2Mbps
+    codec = 'vp09.00.10.08',
+    skipCompression = false,
+  } = options
+  
+  // 圧縮スキップオプションが有効な場合
+  if (skipCompression) {
+    console.log('[VideoCompression] Compression skipped by option')
+    return inputFile
+  }
+  
   if (!isWebCodecsSupported()) {
     console.warn('[VideoCompression] WebCodecs not supported, returning original file')
     return inputFile
   }
-  
-  const {
-    targetBitrate = 1_000_000, // 1Mbps
-    codec = 'vp09.00.10.08',
-  } = options
   
   try {
     // 動画をVideoElementに読み込む

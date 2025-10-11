@@ -1,25 +1,40 @@
 /**
  * Comet API 経由での動画生成
- * https://api.cometapi.com/doc
+ * 公式ドキュメント: https://api.cometapi.com/doc
+ * 
+ * Sora-2はChat Completions形式で動画を生成します。
+ * レスポンスのcontent内に動画URLがMarkdown形式で含まれます。
  */
 
 export interface CometVideoGenerationOptions {
   prompt: string
-  model?: 'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'
-  duration?: number // seconds
-  resolution?: string
-  aspect_ratio?: '16:9' | '9:16' | '1:1'
+  model?: 'sora-2' | 'sora-2-hd'
+  stream?: boolean
+  max_tokens?: number
 }
 
-export interface CometTaskResponse {
-  task_id: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  video_url?: string
-  error?: string
+interface CometChatResponse {
+  id: string
+  object: string
+  created: number
+  model: string
+  choices: Array<{
+    index: number
+    message: {
+      role: string
+      content: string
+    }
+    finish_reason: string
+  }>
+  usage: {
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+  }
 }
 
 /**
- * Comet API経由で動画を生成
+ * Comet APIで動画を生成（Chat Completions形式）
  */
 export async function generateVideoWithCometAPI(
   apiKey: string,
@@ -28,17 +43,16 @@ export async function generateVideoWithCometAPI(
   const {
     prompt,
     model = 'sora-2',
-    duration = 5,
-    aspect_ratio = '16:9',
+    stream = false, // ストリーミングはデフォルトOFF（実装を簡潔にするため）
+    max_tokens = 3000,
   } = options
-  
+
   console.log(`[CometAPI] Generating video with model: ${model}`)
   console.log(`[CometAPI] Prompt: "${prompt}"`)
-  console.log(`[CometAPI] Duration: ${duration}s, Aspect: ${aspect_ratio}`)
-  
+
   try {
-    // Step 1: 動画生成リクエストを送信
-    const createResponse = await fetch('https://api.cometapi.com/v1/video/generate', {
+    // Chat Completions形式でリクエスト
+    const response = await fetch('https://api.cometapi.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,102 +60,94 @@ export async function generateVideoWithCometAPI(
       },
       body: JSON.stringify({
         model,
-        prompt,
-        duration,
-        aspect_ratio,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          }
+        ],
+        stream,
+        max_tokens,
       }),
     })
-    
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text()
-      throw new Error(`Comet API error: ${createResponse.status} ${errorText}`)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      let errorMessage = `Comet API error: ${response.status}`
+      
+      try {
+        const errorData = JSON.parse(errorText)
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message
+          
+          // クォータ不足の場合はわかりやすいメッセージに変換
+          if (errorData.error.code === 'insufficient_user_quota') {
+            errorMessage = 'APIキーのクォータ（利用枠）が不足しています。Comet APIのダッシュボードで残高を確認してください。'
+          }
+        }
+      } catch (parseError) {
+        // JSON解析に失敗した場合は元のエラーテキストを使用
+        errorMessage += ` ${errorText}`
+      }
+      
+      throw new Error(errorMessage)
     }
-    
-    const createData = await createResponse.json()
-    const taskId = createData.task_id
-    
-    if (!taskId) {
-      throw new Error('No task ID returned from Comet API')
+
+    const data: CometChatResponse = await response.json()
+
+    console.log(`[CometAPI] Response:`, data)
+
+    // レスポンスから動画URLを抽出
+    const content = data.choices?.[0]?.message?.content
+    if (!content) {
+      throw new Error('No content in response')
     }
+
+    // contentから画像/動画URLを抽出
+    // 例: ![gen_01jrw0e7j2fc2rp7evwe19y0q7](https://filesystem.site/cdn/...)
+    // または: [100](https://videos.openai.com/...)
+    // または直接URL: https://...
+    const urlRegex = /https?:\/\/[^\s\)]+\.(mp4|png|jpg|jpeg|gif|webm)/i
+    const urlMatch = content.match(urlRegex)
     
-    console.log(`[CometAPI] Task created: ${taskId}`)
-    
-    // Step 2: タスク完了をポーリングで待機
-    const videoUrl = await pollTaskStatus(apiKey, taskId)
-    
-    // Step 3: 完成した動画をダウンロード
+    if (!urlMatch) {
+      console.warn('[CometAPI] No video URL found in content:', content)
+      throw new Error(`No video URL found in response. Content: ${content.substring(0, 200)}...`)
+    }
+
+    const videoUrl = urlMatch[0]
+    console.log(`[CometAPI] Video URL found: ${videoUrl}`)
+
+    // 動画をダウンロード
     console.log(`[CometAPI] Downloading video from: ${videoUrl}`)
     const videoResponse = await fetch(videoUrl)
-    
+
     if (!videoResponse.ok) {
       throw new Error(`Failed to download video: ${videoResponse.status}`)
     }
-    
+
     const videoBlob = await videoResponse.blob()
+    
+    // MIMEタイプを判定
+    const contentType = videoResponse.headers.get('content-type') || videoBlob.type
+    const extension = contentType.includes('webm') ? 'webm' : 
+                      contentType.includes('png') ? 'png' :
+                      contentType.includes('jpg') || contentType.includes('jpeg') ? 'jpg' :
+                      'mp4'
+    
     const videoFile = new File(
       [videoBlob],
-      `shrine-visit-${Date.now()}.mp4`,
-      { type: 'video/mp4' }
+      `shrine-visit-${Date.now()}.${extension}`,
+      { type: contentType || 'video/mp4' }
     )
-    
-    console.log(`[CometAPI] Video generated successfully: ${(videoFile.size / 1024 / 1024).toFixed(2)}MB`)
-    
+
+    console.log(`[CometAPI] Video generated successfully: ${(videoFile.size / 1024 / 1024).toFixed(2)}MB (${contentType})`)
+
     return videoFile
   } catch (error) {
     console.error('[CometAPI] Generation failed:', error)
     throw error
   }
-}
-
-/**
- * タスクステータスをポーリング
- */
-async function pollTaskStatus(
-  apiKey: string,
-  taskId: string,
-  maxAttempts: number = 60,
-  intervalMs: number = 5000
-): Promise<string> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const statusResponse = await fetch(`https://api.cometapi.com/v1/video/task/${taskId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-        },
-      })
-      
-      if (!statusResponse.ok) {
-        const errorText = await statusResponse.text()
-        throw new Error(`Failed to check status: ${statusResponse.status} ${errorText}`)
-      }
-      
-      const status: CometTaskResponse = await statusResponse.json()
-      
-      console.log(`[CometAPI] Status check ${attempt + 1}/${maxAttempts}: ${status.status}`)
-      
-      if (status.status === 'completed' && status.video_url) {
-        return status.video_url
-      }
-      
-      if (status.status === 'failed') {
-        throw new Error(`Video generation failed: ${status.error || 'Unknown error'}`)
-      }
-      
-      // 次のチェックまで待機
-      if (attempt < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, intervalMs))
-      }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error
-      }
-      console.warn(`[CometAPI] Status check failed, retrying... (${attempt + 1}/${maxAttempts})`)
-      await new Promise(resolve => setTimeout(resolve, intervalMs))
-    }
-  }
-  
-  throw new Error(`Video generation timeout after ${maxAttempts * intervalMs / 1000}s`)
 }
 
 /**
@@ -159,16 +165,19 @@ Cinematic, high quality, 4k.`
 
 /**
  * カスタムプロンプトのバリデーション
+ * 
+ * Sora-2は長いプロンプトを受け付けるため、制限は緩めに設定
  */
 export function validatePrompt(prompt: string): { valid: boolean; error?: string } {
   if (!prompt || prompt.trim().length === 0) {
     return { valid: false, error: 'プロンプトを入力してください' }
   }
   
-  if (prompt.length > 1000) {
-    return { valid: false, error: 'プロンプトは1000文字以内にしてください' }
+  // OpenAI APIの一般的な制限は数千トークン（数万文字）だが、
+  // 実用上は5000文字程度で十分と思われる
+  if (prompt.length > 5000) {
+    return { valid: false, error: 'プロンプトは5000文字以内にしてください' }
   }
   
   return { valid: true }
 }
-

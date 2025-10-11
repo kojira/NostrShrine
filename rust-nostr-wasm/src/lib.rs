@@ -1,18 +1,8 @@
 use wasm_bindgen::prelude::*;
-use nostr::{Event, EventBuilder, EventId, Keys, Kind, PublicKey, Tag, Timestamp};
+use nostr::{Event, EventBuilder, Keys, Kind, PublicKey, Tag, Timestamp};
 use nostr::nips::nip19::ToBech32;
 use nostr::types::time::Instant;
 use serde::{Deserialize, Serialize};
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
-macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
 
 #[wasm_bindgen]
 pub fn init_panic_hook() {

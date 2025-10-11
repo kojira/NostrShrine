@@ -22,6 +22,9 @@ import {
   Paper,
   InputAdornment,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  Slider,
 } from '@mui/material'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
@@ -65,9 +68,11 @@ export function VideoGenerator() {
   const hasCometApiKey = Boolean(cometApiKey)
   
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
-  const [model, setModel] = useState<'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'>('sora-2')
+  const [model, setModel] = useState<'sora-2' | 'sora-2-hd'>('sora-2')
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9')
   const [duration, setDuration] = useState(5)
+  const [skipCompression, setSkipCompression] = useState(false)
+  const [volume, setVolume] = useState(0.5) // 0.0 ~ 1.0
   
   // 生成された動画のプレビュー
   const [generatedVideo, setGeneratedVideo] = useState<File | null>(null)
@@ -119,12 +124,13 @@ export function VideoGenerator() {
     }
     
     try {
+      // プロンプトに秒数とアスペクト比の指示を追加
+      const enhancedPrompt = `${prompt}\n\nDuration: ${duration} seconds. Aspect ratio: ${aspectRatio}.`
+      
       // 動画を生成（アップロードはしない）
       const videoFile = await generateVideo(cometApiKey, {
-        prompt,
+        prompt: enhancedPrompt,
         model,
-        duration,
-        aspect_ratio: aspectRatio,
       })
       
       // プレビュー用のURLを作成
@@ -150,7 +156,7 @@ export function VideoGenerator() {
     setSuccess(null)
     
     try {
-      await uploadGeneratedVideo(generatedVideo, generatedPrompt)
+      await uploadGeneratedVideo(generatedVideo, generatedPrompt, skipCompression)
       
       setSuccess('動画をアップロードしました！')
       
@@ -336,14 +342,11 @@ export function VideoGenerator() {
                 <InputLabel>モデル</InputLabel>
                 <Select
                   value={model}
-                  onChange={(e) => setModel(e.target.value as 'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0')}
+                  onChange={(e) => setModel(e.target.value as 'sora-2' | 'sora-2-hd')}
                   label="モデル"
                 >
-                  <MenuItem value="sora-2">Sora 2 (最新・高品質)</MenuItem>
-                  <MenuItem value="sora-turbo">Sora Turbo (高速)</MenuItem>
-                  <MenuItem value="sora-1.5">Sora 1.5</MenuItem>
-                  <MenuItem value="runway-gen3">Runway Gen-3</MenuItem>
-                  <MenuItem value="kling-2.0">Kling 2.0</MenuItem>
+                  <MenuItem value="sora-2">Sora 2 (標準品質)</MenuItem>
+                  <MenuItem value="sora-2-hd">Sora 2 HD (高品質)</MenuItem>
                 </Select>
               </FormControl>
               
@@ -394,33 +397,84 @@ export function VideoGenerator() {
             ) : (
               <>
                 {/* 生成された動画のプレビュー */}
-                <Box
-                  sx={{
-                    border: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? '2px solid rgba(124, 58, 237, 0.3)'
-                        : '2px solid rgba(124, 58, 237, 0.25)',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    bgcolor: 'black',
-                  }}
-                >
-                  <video
-                    src={generatedVideoUrl || ''}
-                    controls
-                    autoPlay
-                    loop
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      display: 'block',
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    生成された動画（圧縮前）
+                  </Typography>
+                  <Box
+                    sx={{
+                      border: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? '2px solid rgba(124, 58, 237, 0.3)'
+                          : '2px solid rgba(124, 58, 237, 0.25)',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      bgcolor: 'black',
+                      mb: 2,
                     }}
-                  />
+                  >
+                    <video
+                      src={generatedVideoUrl || ''}
+                      controls
+                      autoPlay
+                      loop
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                      ref={(el) => {
+                        if (el) el.volume = volume
+                      }}
+                    />
+                  </Box>
+                  
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                        ファイルサイズ: {(generatedVideo.size / 1024 / 1024).toFixed(2)}MB
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                        MIMEタイプ: {generatedVideo.type || 'unknown'}
+                      </Typography>
+                    </Box>
+                    
+                    <Box>
+                      <Typography variant="caption" gutterBottom display="block">
+                        音量: {Math.round(volume * 100)}%
+                      </Typography>
+                      <Slider
+                        value={volume}
+                        onChange={(_, value) => setVolume(value as number)}
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        marks
+                        valueLabelDisplay="auto"
+                        valueLabelFormat={(value) => `${Math.round(value * 100)}%`}
+                        disabled={isProcessing}
+                      />
+                    </Box>
+                    
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={skipCompression}
+                          onChange={(e) => setSkipCompression(e.target.checked)}
+                          disabled={isProcessing}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body2">圧縮をスキップ（推奨）</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            WebCodecs圧縮は実験的機能です。問題がある場合はスキップしてください。
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </Stack>
                 </Box>
-                
-                <Typography variant="body2" color="text.secondary">
-                  ファイルサイズ: {(generatedVideo.size / 1024 / 1024).toFixed(2)}MB
-                </Typography>
                 
                 <Stack direction="row" spacing={2}>
                   <Button

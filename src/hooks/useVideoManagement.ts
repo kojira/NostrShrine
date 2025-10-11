@@ -64,6 +64,7 @@ export function useVideoManagement() {
     async (
       file: File,
       prompt: string,
+      skipCompression?: boolean,
       title?: string,
       description?: string
     ): Promise<VideoRecord> => {
@@ -73,10 +74,28 @@ export function useVideoManagement() {
       
       try {
         setIsUploading(true)
+        
+        // 圧縮処理（スキップ可能）
+        let finalFile = file
+        if (!skipCompression) {
+          setProgress('動画を圧縮中...')
+          try {
+            finalFile = await compressVideo(file, {
+              targetBitrate: 2_000_000,
+              skipCompression: false,
+            })
+          } catch (compressionError) {
+            console.warn('[VideoManagement] Compression failed, using original file:', compressionError)
+            finalFile = file
+          }
+        } else {
+          console.log('[VideoManagement] Compression skipped by user option')
+        }
+        
         setProgress('動画をアップロード中...')
         
         // 1. share.yabu.meにアップロード
-        const videoUrl = await uploadToShareYabume(file)
+        const videoUrl = await uploadToShareYabume(finalFile)
         
         setProgress('Nostrに保存中...')
         
