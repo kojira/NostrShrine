@@ -23,13 +23,32 @@ export interface SubscriptionOptions {
 export class CachedRelayClient {
   private subscribeFunc: (id: string, filters: Filter[], onEvent: (event: NostrEvent) => void) => void
   private unsubscribeFunc: (id: string) => void
+  private publishFunc: (event: NostrEvent) => Promise<void>
+  
+  // eventCacheを外部からアクセス可能にする
+  public eventCache = eventCache
   
   constructor(
     subscribe: (id: string, filters: Filter[], onEvent: (event: NostrEvent) => void) => void,
-    unsubscribe: (id: string) => void
+    unsubscribe: (id: string) => void,
+    publish: (event: NostrEvent) => Promise<void>
   ) {
     this.subscribeFunc = subscribe
     this.unsubscribeFunc = unsubscribe
+    this.publishFunc = publish
+  }
+  
+  /**
+   * イベントを公開
+   */
+  async publishEvent(event: NostrEvent): Promise<void> {
+    // リレーに公開
+    await this.publishFunc(event)
+    
+    // キャッシュにも保存
+    await eventCache.set(event).catch(err => {
+      console.error('[CachedRelay] Failed to cache published event:', err)
+    })
   }
   
   /**
@@ -204,8 +223,9 @@ export class CachedRelayClient {
  */
 export function createCachedRelayClient(
   subscribe: (id: string, filters: Filter[], onEvent: (event: NostrEvent) => void) => void,
-  unsubscribe: (id: string) => void
+  unsubscribe: (id: string) => void,
+  publish: (event: NostrEvent) => Promise<void>
 ): CachedRelayClient {
-  return new CachedRelayClient(subscribe, unsubscribe)
+  return new CachedRelayClient(subscribe, unsubscribe, publish)
 }
 

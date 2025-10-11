@@ -2,11 +2,13 @@
  * 管理者ページ
  */
 
-import { Box, Typography, Alert, Paper } from '@mui/material'
+import { Box, Typography, Alert, Stack } from '@mui/material'
 import { useAdminContext } from '../contexts/AdminContext'
 import { Settings } from '../components/admin/Settings'
 import { OmikujiGenerator } from '../components/admin/OmikujiGenerator'
 import { OmikujiList } from '../components/admin/OmikujiList'
+import { VideoGenerator } from '../components/admin/VideoGenerator'
+import { VideoList } from '../components/admin/VideoList'
 
 export function AdminPage() {
   const { isAdmin } = useAdminContext()
@@ -30,21 +32,54 @@ export function AdminPage() {
         🔧 管理者画面
       </Typography>
       
-      {/* アプリケーション設定 */}
-      <Settings />
-      
-      {/* おみくじ生成 */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          おみくじ生成
-        </Typography>
-        <OmikujiGenerator />
-      </Paper>
-      
-      {/* おみくじ一覧 */}
-      <Paper sx={{ p: 3 }}>
-        <OmikujiList />
-      </Paper>
+      <Stack spacing={4}>
+        {/* アプリケーション設定 */}
+        <Settings />
+        
+        {/* 動画管理セクション */}
+        <Box>
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              mb: 2,
+              background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            参拝動画管理
+          </Typography>
+          
+          <Stack spacing={3}>
+            <VideoGenerator />
+            <VideoList />
+          </Stack>
+        </Box>
+        
+        {/* おみくじ管理セクション */}
+        <Box>
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              mb: 2,
+              background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            おみくじ管理
+          </Typography>
+          
+          <Stack spacing={3}>
+            <OmikujiGenerator />
+            <OmikujiList />
+          </Stack>
+        </Box>
+      </Stack>
     </Box>
   )
 }

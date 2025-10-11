@@ -128,3 +128,50 @@ export async function createOmikujiDataEvent(
   return await nip07.signEvent(unsigned)
 }
 
+/**
+ * 参拝動画イベントデータ
+ */
+export interface ShrineVideoData {
+  url: string
+  title?: string
+  description?: string
+  duration?: number // seconds
+  width?: number
+  height?: number
+  mimeType?: string
+  prompt?: string // Soraで生成した場合のプロンプト
+}
+
+/**
+ * 参拝動画イベント作成（管理者が動画をアップロードして登録）
+ */
+export async function createShrineVideoEvent(
+  publicKey: string,
+  videoId: string,
+  data: ShrineVideoData
+): Promise<NostrEvent> {
+  const content = JSON.stringify({
+    url: data.url,
+    title: data.title || '参拝動画',
+    description: data.description,
+    duration: data.duration,
+    width: data.width,
+    height: data.height,
+    mime_type: data.mimeType,
+    prompt: data.prompt,
+    created_at: Date.now(),
+  })
+  
+  const builder = new EventBuilder(KIND.SHRINE_VIDEO, content)
+  builder.addTag('d', [videoId])
+  builder.addTag('url', [data.url])
+  builder.addTag('title', [data.title || '参拝動画'])
+  
+  if (data.mimeType) {
+    builder.addTag('m', [data.mimeType])
+  }
+  
+  const unsigned = await builder.toUnsignedEvent(publicKey)
+  return await nip07.signEvent(unsigned)
+}
+

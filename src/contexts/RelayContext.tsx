@@ -32,7 +32,8 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [cachedClient] = useState(() => 
     createCachedRelayClient(
       (id, filters, onEvent) => pool.subscribeToAll(id, filters, onEvent),
-      (id) => pool.unsubscribeFromAll(id)
+      (id) => pool.unsubscribeFromAll(id),
+      (event) => pool.publishToAll(event)
     )
   )
   
