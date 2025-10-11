@@ -22,12 +22,14 @@ import { useOmikuji } from '../hooks/useOmikuji'
 import { useSettings } from '../hooks/useSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { useRelay } from '../contexts/RelayContext'
+import { useThemeContext } from '../contexts/ThemeContext'
 import { createOmikujiPostEvent, type OmikujiResult } from '../lib/nostr/events'
 
 export function Omikuji() {
   const { publicKey } = useAuth()
   const { publishEvent } = useRelay()
   const { settings } = useSettings()
+  const { mode } = useThemeContext()
   const {
     fetchOmikujiList,
     drawOmikuji,
@@ -86,22 +88,34 @@ export function Omikuji() {
     }
   }
   
-  const getFortuneBgColor = (fortune: string) => {
+  const getFortuneGradient = (fortune: string) => {
     switch (fortune) {
       case '大吉':
-        return '#FFD700'
+        return mode === 'dark'
+          ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 140, 0, 0.2) 100%)'
+          : 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%)'
       case '中吉':
-        return '#FFA500'
+        return mode === 'dark'
+          ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
+          : 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%)'
       case '小吉':
-        return '#FFE4B5'
       case '吉':
-        return '#F0E68C'
+        return mode === 'dark'
+          ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)'
+          : 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)'
       case '末吉':
-        return '#E0E0E0'
+        return mode === 'dark'
+          ? 'linear-gradient(135deg, rgba(100, 100, 100, 0.2) 0%, rgba(150, 150, 150, 0.2) 100%)'
+          : 'linear-gradient(135deg, rgba(200, 200, 200, 0.15) 0%, rgba(150, 150, 150, 0.15) 100%)'
       case '凶':
-        return '#D3D3D3'
+      case '大凶':
+        return mode === 'dark'
+          ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%)'
+          : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(185, 28, 28, 0.1) 100%)'
       default:
-        return '#FFFFFF'
+        return mode === 'dark'
+          ? 'rgba(26, 26, 26, 0.5)'
+          : 'rgba(255, 255, 255, 0.7)'
     }
   }
   
@@ -206,7 +220,12 @@ export function Omikuji() {
               elevation={3}
               sx={{
                 p: 3,
-                bgcolor: getFortuneBgColor(result.fortune),
+                background: getFortuneGradient(result.fortune),
+                backdropFilter: 'blur(20px)',
+                border: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? '1px solid rgba(124, 58, 237, 0.3)'
+                    : '1px solid rgba(124, 58, 237, 0.2)',
                 textAlign: 'center',
               }}
             >
