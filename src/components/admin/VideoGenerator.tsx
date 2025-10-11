@@ -56,7 +56,7 @@ export function VideoGenerator() {
   // Comet API生成用（専用のAPIキー）
   const [cometApiKey, setCometApiKey] = useState(() => localStorage.getItem('comet_api_key') || '')
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
-  const [model, setModel] = useState<'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'>('sora-turbo')
+  const [model, setModel] = useState<'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'>('sora-2')
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9')
   const [duration, setDuration] = useState(5)
   
@@ -267,10 +267,11 @@ export function VideoGenerator() {
                 <InputLabel>モデル</InputLabel>
                 <Select
                   value={model}
-                  onChange={(e) => setModel(e.target.value as 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0')}
+                  onChange={(e) => setModel(e.target.value as 'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0')}
                   label="モデル"
                 >
-                  <MenuItem value="sora-turbo">Sora Turbo</MenuItem>
+                  <MenuItem value="sora-2">Sora 2 (最新・高品質)</MenuItem>
+                  <MenuItem value="sora-turbo">Sora Turbo (高速)</MenuItem>
                   <MenuItem value="sora-1.5">Sora 1.5</MenuItem>
                   <MenuItem value="runway-gen3">Runway Gen-3</MenuItem>
                   <MenuItem value="kling-2.0">Kling 2.0</MenuItem>

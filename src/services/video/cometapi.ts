@@ -5,7 +5,7 @@
 
 export interface CometVideoGenerationOptions {
   prompt: string
-  model?: 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'
+  model?: 'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'
   duration?: number // seconds
   resolution?: string
   aspect_ratio?: '16:9' | '9:16' | '1:1'
@@ -27,7 +27,7 @@ export async function generateVideoWithCometAPI(
 ): Promise<File> {
   const {
     prompt,
-    model = 'sora-turbo',
+    model = 'sora-2',
     duration = 5,
     aspect_ratio = '16:9',
   } = options
