@@ -191,6 +191,12 @@ function AppContent() {
                     border: (theme) => theme.palette.mode === 'dark'
                       ? '2px solid rgba(124, 58, 237, 0.5)'
                       : '2px solid rgba(124, 58, 237, 0.4)',
+                    bgcolor: (theme) => theme.palette.mode === 'dark'
+                      ? 'rgba(124, 58, 237, 0.3)'
+                      : 'rgba(124, 58, 237, 0.2)',
+                    color: (theme) => theme.palette.mode === 'dark'
+                      ? 'white'
+                      : 'black',
                   }}
                 >
                   {!profile?.picture && <PersonIcon />}
@@ -200,6 +206,9 @@ function AppContent() {
                   sx={{ 
                     fontWeight: 600,
                     display: { xs: 'none', sm: 'block' },
+                    color: (theme) => theme.palette.mode === 'dark'
+                      ? 'white'
+                      : 'black',
                   }}
                 >
                   {profile?.display_name || profile?.name || `npub...${publicKey?.slice(-8)}`}
