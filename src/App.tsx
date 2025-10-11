@@ -13,12 +13,29 @@ function AppContent() {
   const location = useLocation()
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)' }}>
       {/* ヘッダー */}
-      <AppBar position="static" color="transparent" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <AppBar 
+        position="static" 
+        sx={{ 
+          background: 'rgba(26, 26, 26, 0.8)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        }} 
+        elevation={0}
+      >
+        <Toolbar sx={{ py: 1 }}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              flexGrow: 1,
+              background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 700,
+            }}
+          >
+            <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '8px' }}>
               ⛩️ NostrShrine
             </Link>
           </Typography>
@@ -30,7 +47,11 @@ function AppContent() {
                 component={Link}
                 to="/"
                 variant={location.pathname === '/' ? 'contained' : 'text'}
-                size="small"
+                sx={{
+                  ...(location.pathname === '/' && {
+                    background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                  })
+                }}
               >
                 ホーム
               </Button>
@@ -39,8 +60,11 @@ function AppContent() {
                   component={Link}
                   to="/admin"
                   variant={location.pathname === '/admin' ? 'contained' : 'text'}
-                  size="small"
-                  color="secondary"
+                  sx={{
+                    ...(location.pathname === '/admin' && {
+                      background: 'linear-gradient(135deg, #EC4899 0%, #7C3AED 100%)',
+                    })
+                  }}
                 >
                   管理画面
                 </Button>
@@ -50,19 +74,44 @@ function AppContent() {
           
           {relays.length > 0 && (
             <Chip
-              label={isConnected ? '接続中' : '未接続'}
-              color={isConnected ? 'success' : 'default'}
+              label={isConnected ? '🟢 接続中' : '⚪ 未接続'}
               size="small"
-              sx={{ mr: 2 }}
+              sx={{ 
+                mr: 2,
+                background: isConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                border: isConnected ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                color: isConnected ? '#10B981' : 'text.secondary',
+              }}
             />
           )}
           
           {isAuthenticated ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="caption" sx={{ mr: 1 }}>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  mr: 1,
+                  px: 2,
+                  py: 0.5,
+                  background: 'rgba(124, 58, 237, 0.1)',
+                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                  borderRadius: 2,
+                  fontFamily: 'monospace',
+                }}
+              >
                 {npub?.slice(0, 12)}...
               </Typography>
-              <Button onClick={logout} variant="outlined" size="small">
+              <Button 
+                onClick={logout} 
+                variant="outlined"
+                sx={{
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  '&:hover': {
+                    borderColor: 'rgba(239, 68, 68, 0.5)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                  }
+                }}
+              >
                 ログアウト
               </Button>
             </Box>
@@ -71,6 +120,12 @@ function AppContent() {
               onClick={login}
               variant="contained"
               disabled={!isNIP07Available || isLoading}
+              sx={{
+                background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #6D28D9 0%, #DB2777 100%)',
+                }
+              }}
             >
               {isLoading ? '確認中...' : 'NIP-07でログイン'}
             </Button>
@@ -82,18 +137,57 @@ function AppContent() {
       <Container maxWidth="md" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
         <Box sx={{ mt: 4 }}>
           {!isAuthenticated ? (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h5" gutterBottom>
+            <Box 
+              sx={{ 
+                textAlign: 'center', 
+                py: 12,
+                px: 4,
+                background: 'rgba(26, 26, 26, 0.5)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: 4,
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+              }}
+            >
+              <Typography 
+                variant="h2" 
+                gutterBottom
+                sx={{
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontWeight: 700,
+                  mb: 3,
+                }}
+              >
                 ⛩️ NostrShrine へようこそ
               </Typography>
-              <Typography color="text.secondary" paragraph>
-                Nostrベースの神社です。NIP-07でログインして参拝しましょう。
+              <Typography 
+                variant="h6" 
+                color="text.secondary" 
+                paragraph
+                sx={{ mb: 4, lineHeight: 1.8 }}
+              >
+                Nostrベースの神社です。<br />
+                NIP-07でログインして参拝しましょう。
               </Typography>
               {!isNIP07Available && (
-                <Typography color="error" variant="body2">
-                  NIP-07拡張機能が見つかりません。<br />
-                  nos2x、Alby、Flamingo等をインストールしてください。
-                </Typography>
+                <Box 
+                  sx={{ 
+                    p: 3, 
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: 2,
+                    maxWidth: 500,
+                    mx: 'auto',
+                  }}
+                >
+                  <Typography color="error" variant="body1" fontWeight={600}>
+                    ⚠️ NIP-07拡張機能が見つかりません
+                  </Typography>
+                  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                    nos2x、Alby、Flamingo等をインストールしてください。
+                  </Typography>
+                </Box>
               )}
             </Box>
           ) : (
@@ -106,9 +200,27 @@ function AppContent() {
       </Container>
 
       {/* フッター */}
-      <Box sx={{ bgcolor: 'background.paper', py: 2, borderTop: 1, borderColor: 'divider', mt: 'auto' }}>
+      <Box 
+        sx={{ 
+          background: 'rgba(26, 26, 26, 0.8)',
+          backdropFilter: 'blur(20px)',
+          py: 3, 
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          mt: 'auto',
+        }}
+      >
         <Container maxWidth="md">
-          <Typography variant="body2" color="text.secondary" align="center">
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            align="center"
+            sx={{
+              background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 600,
+            }}
+          >
             Powered by Nostr · Built with rust-nostr WASM
           </Typography>
         </Container>
