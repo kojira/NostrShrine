@@ -366,8 +366,11 @@ function AppContent() {
 }
 
 function App() {
+  // GitHub Pagesのベースパスを設定（本番環境のみ）
+  const basename = import.meta.env.MODE === 'production' ? '/NostrShrine' : '/'
+  
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <AppContent />
     </BrowserRouter>
   )

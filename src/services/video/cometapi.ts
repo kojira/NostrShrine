@@ -34,21 +34,25 @@ interface CometChatResponse {
 }
 
 /**
- * Comet APIで動画を生成（Chat Completions形式）
+ * Comet APIで動画を生成（Chat Completions形式、ストリーミング対応）
+ * 
+ * Sora動画生成は時間がかかるため、stream: trueで進捗を確認する
  */
 export async function generateVideoWithCometAPI(
   apiKey: string,
-  options: CometVideoGenerationOptions
+  options: CometVideoGenerationOptions,
+  onProgress?: (message: string) => void
 ): Promise<File> {
   const {
     prompt,
     model = 'sora-2',
-    stream = false, // ストリーミングはデフォルトOFF（実装を簡潔にするため）
+    stream = true, // 動画生成は時間がかかるのでストリーミング推奨
     max_tokens = 3000,
   } = options
 
   console.log(`[CometAPI] Generating video with model: ${model}`)
   console.log(`[CometAPI] Prompt: "${prompt}"`)
+  console.log(`[CometAPI] Stream mode: ${stream}`)
 
   try {
     // Chat Completions形式でリクエスト
@@ -84,6 +88,11 @@ export async function generateVideoWithCometAPI(
           if (errorData.error.code === 'insufficient_user_quota') {
             errorMessage = 'APIキーのクォータ（利用枠）が不足しています。Comet APIのダッシュボードで残高を確認してください。'
           }
+          
+          // タイムアウトエラー
+          if (response.status === 504) {
+            errorMessage = '動画生成がタイムアウトしました。Soraの動画生成は数分かかる場合があります。ストリーミングモードで再試行してください。'
+          }
         }
       } catch (parseError) {
         // JSON解析に失敗した場合は元のエラーテキストを使用
@@ -93,26 +102,89 @@ export async function generateVideoWithCometAPI(
       throw new Error(errorMessage)
     }
 
-    const data: CometChatResponse = await response.json()
+    let fullContent = ''
 
-    console.log(`[CometAPI] Response:`, data)
+    if (stream) {
+      // ストリーミングレスポンスの処理
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      
+      if (!reader) {
+        throw new Error('Response body is not readable')
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n').filter(line => line.trim() !== '')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            
+            if (data === '[DONE]') {
+              console.log('[CometAPI] Stream completed')
+              break
+            }
+
+            try {
+              const parsed = JSON.parse(data)
+              const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content
+              
+              if (content) {
+                fullContent += content
+                
+                // プログレス通知（パーセンテージや状態メッセージを抽出）
+                if (onProgress) {
+                  if (content.includes('Queuing')) {
+                    onProgress('キューに追加中...')
+                  } else if (content.includes('Generating')) {
+                    onProgress('動画を生成中...')
+                  } else if (content.includes('Progress')) {
+                    const progressMatch = content.match(/(\d+)\.\./)
+                    if (progressMatch) {
+                      onProgress(`生成中: ${progressMatch[1]}%`)
+                    }
+                  } else if (content.includes('Generation complete')) {
+                    onProgress('生成完了！')
+                  }
+                }
+                
+                console.log('[CometAPI] Streaming chunk:', content.substring(0, 100))
+              }
+            } catch (parseError) {
+              // JSON解析エラーは無視（不完全なチャンクの可能性）
+              console.debug('[CometAPI] Failed to parse chunk:', data.substring(0, 50))
+            }
+          }
+        }
+      }
+    } else {
+      // 非ストリーミングレスポンス
+      const data: CometChatResponse = await response.json()
+      console.log(`[CometAPI] Response:`, data)
+      fullContent = data.choices?.[0]?.message?.content || ''
+    }
 
     // レスポンスから動画URLを抽出
-    const content = data.choices?.[0]?.message?.content
-    if (!content) {
+    if (!fullContent) {
       throw new Error('No content in response')
     }
+
+    console.log('[CometAPI] Full content length:', fullContent.length)
 
     // contentから画像/動画URLを抽出
     // 例: ![gen_01jrw0e7j2fc2rp7evwe19y0q7](https://filesystem.site/cdn/...)
     // または: [100](https://videos.openai.com/...)
     // または直接URL: https://...
     const urlRegex = /https?:\/\/[^\s\)]+\.(mp4|png|jpg|jpeg|gif|webm)/i
-    const urlMatch = content.match(urlRegex)
+    const urlMatch = fullContent.match(urlRegex)
     
     if (!urlMatch) {
-      console.warn('[CometAPI] No video URL found in content:', content)
-      throw new Error(`No video URL found in response. Content: ${content.substring(0, 200)}...`)
+      console.warn('[CometAPI] No video URL found in content:', fullContent)
+      throw new Error(`No video URL found in response. Content: ${fullContent.substring(0, 200)}...`)
     }
 
     const videoUrl = urlMatch[0]

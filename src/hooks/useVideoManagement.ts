@@ -34,8 +34,10 @@ export function useVideoManagement() {
         setIsGenerating(true)
         setProgress('動画を生成中...')
         
-        // 1. Comet API経由で動画生成
-        const videoFile = await generateVideoWithCometAPI(apiKey, options)
+      // 1. Comet API経由で動画生成（ストリーミングで進捗表示）
+      const videoFile = await generateVideoWithCometAPI(apiKey, options, (message) => {
+        setProgress(message)
+      })
         
         setProgress('動画を圧縮中...')
         
