@@ -19,9 +19,11 @@ import {
 } from '@mui/material'
 import { useShrineVisit } from '../hooks/useShrineVisit'
 import { ShrineVideoDialog } from './ShrineVideoDialog'
+import { useVideoList } from '../hooks/useVideoList'
 
 export function ShrineVisit() {
   const { visit, isVisiting, error } = useShrineVisit()
+  const { videos } = useVideoList()
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
@@ -43,7 +45,10 @@ export function ShrineVisit() {
       setShowSuccess(true)
       setTimeout(() => {
         setOpen(false)
-        setShowVideo(true) // 参拝成功後に動画を表示
+        // 動画が存在する場合のみ動画を表示
+        if (videos.length > 0) {
+          setShowVideo(true)
+        }
       }, 1500)
     }
   }
