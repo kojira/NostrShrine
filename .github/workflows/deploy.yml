@@ -53,8 +53,8 @@ jobs:
         run: pnpm run build
         env:
           NODE_ENV: production
-          VITE_DEFAULT_RELAY: ${{ secrets.VITE_DEFAULT_RELAY }}
-          VITE_ADMIN_PUBKEYS: ${{ secrets.VITE_ADMIN_PUBKEYS }}
+          VITE_DEFAULT_RELAY: ${{ vars.VITE_DEFAULT_RELAY }}
+          VITE_ADMIN_PUBKEYS: ${{ vars.VITE_ADMIN_PUBKEYS }}
           
       - name: Setup Pages
         uses: actions/configure-pages@v4

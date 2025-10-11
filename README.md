@@ -84,12 +84,19 @@ VITE_DEFAULT_RELAY=wss://r.kojira.io
 
 ### GitHub Pages デプロイ
 
-GitHub Pagesにデプロイする場合は、リポジトリの **Settings > Secrets and variables > Actions** で以下のシークレットを設定してください：
+GitHub Pagesにデプロイする場合は、リポジトリの **Settings > Secrets and variables > Actions** の **Variables** タブで以下の変数を設定してください：
 
 - `VITE_ADMIN_PUBKEYS`: 管理者の公開鍵（カンマ区切り）
-- `VITE_DEFAULT_RELAY`: デフォルトリレー（例: `wss://r.kojira.io`）
+  - 例: `npub1abc...,npub1def...` または `hex1,hex2`
+- `VITE_DEFAULT_RELAY`: デフォルトリレー
+  - 例: `wss://r.kojira.io`
 
 これらの環境変数はビルド時に埋め込まれます。
+
+**設定手順:**
+1. リポジトリの **Settings** → **Secrets and variables** → **Actions**
+2. **Variables** タブをクリック
+3. **New repository variable** で上記の変数を追加
 
 ## 📱 使い方
 
