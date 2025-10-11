@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useRelay } from '../contexts/RelayContext'
 import { createShrineVideoEvent, type ShrineVideoData } from '../lib/nostr/events'
 import type { NostrEvent } from '../lib/nostr/client'
-import { generateVideoWithSora, type SoraGenerationOptions } from '../services/video/sora'
+import { generateVideoWithCometAPI, type CometVideoGenerationOptions } from '../services/video/cometapi'
 import { compressVideo } from '../services/video/compression'
 import { uploadToShareYabume } from '../services/upload/nip96'
 import { KIND } from '../config/constants'
@@ -26,16 +26,16 @@ export function useVideoManagement() {
   const [progress, setProgress] = useState('')
   
   /**
-   * Sora APIで動画を生成（アップロードなし）
+   * Comet API経由で動画を生成（アップロードなし）
    */
   const generateVideo = useCallback(
-    async (apiKey: string, options: SoraGenerationOptions): Promise<File> => {
+    async (apiKey: string, options: CometVideoGenerationOptions): Promise<File> => {
       try {
         setIsGenerating(true)
         setProgress('動画を生成中...')
         
-        // 1. Sora APIで動画生成
-        const videoFile = await generateVideoWithSora(apiKey, options)
+        // 1. Comet API経由で動画生成
+        const videoFile = await generateVideoWithCometAPI(apiKey, options)
         
         setProgress('動画を圧縮中...')
         

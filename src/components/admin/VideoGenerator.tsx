@@ -22,7 +22,7 @@ import {
 } from '@mui/material'
 import { VideoCall as VideoCallIcon, Upload as UploadIcon } from '@mui/icons-material'
 import { useVideoManagement } from '../../hooks/useVideoManagement'
-import { getDefaultShrineVisitPrompt, validatePrompt } from '../../services/video/sora'
+import { getDefaultShrineVisitPrompt, validatePrompt } from '../../services/video/cometapi'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -53,11 +53,12 @@ export function VideoGenerator() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   
-  // Sora生成用（おみくじと同じAPIキーを使用）
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '')
+  // Comet API生成用（専用のAPIキー）
+  const [cometApiKey, setCometApiKey] = useState(() => localStorage.getItem('comet_api_key') || '')
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
-  const [size, setSize] = useState<'1280x720' | '1920x1080' | '720x1280' | '1080x1920'>('1280x720')
-  const [seconds, setSeconds] = useState(5)
+  const [model, setModel] = useState<'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'>('sora-turbo')
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9')
+  const [duration, setDuration] = useState(5)
   
   // 生成された動画のプレビュー
   const [generatedVideo, setGeneratedVideo] = useState<File | null>(null)
@@ -80,8 +81,8 @@ export function VideoGenerator() {
     setSuccess(null)
     
     // バリデーション
-    if (!apiKey.trim()) {
-      setError('OpenAI API Keyを入力してください')
+    if (!cometApiKey.trim()) {
+      setError('Comet API Keyを入力してください')
       return
     }
     
@@ -92,14 +93,15 @@ export function VideoGenerator() {
     }
     
     try {
-      // API Keyを保存（おみくじと同じキーを使用）
-      localStorage.setItem('openai_api_key', apiKey)
+      // API Keyを保存
+      localStorage.setItem('comet_api_key', cometApiKey)
       
       // 動画を生成（アップロードはしない）
-      const videoFile = await generateVideo(apiKey, {
+      const videoFile = await generateVideo(cometApiKey, {
         prompt,
-        size,
-        seconds,
+        model,
+        duration,
+        aspect_ratio: aspectRatio,
       })
       
       // プレビュー用のURLを作成
@@ -240,12 +242,12 @@ export function VideoGenerator() {
         <TabPanel value={tabValue} index={0}>
           <Stack spacing={3}>
             <TextField
-              label="OpenAI API Key"
+              label="Comet API Key"
               type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              value={cometApiKey}
+              onChange={(e) => setCometApiKey(e.target.value)}
               fullWidth
-              helperText="おみくじ生成と共通のAPIキー（ブラウザに保存されます）"
+              helperText="Comet API専用のキー（ブラウザに保存されます）"
               disabled={isProcessing}
             />
             
@@ -262,34 +264,47 @@ export function VideoGenerator() {
             
             <Stack direction="row" spacing={2}>
               <FormControl fullWidth disabled={isProcessing}>
-                <InputLabel>解像度</InputLabel>
+                <InputLabel>モデル</InputLabel>
                 <Select
-                  value={size}
-                  onChange={(e) => setSize(e.target.value as '1280x720' | '1920x1080' | '720x1280' | '1080x1920')}
-                  label="解像度"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value as 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0')}
+                  label="モデル"
                 >
-                  <MenuItem value="1280x720">1280x720 (HD横)</MenuItem>
-                  <MenuItem value="1920x1080">1920x1080 (Full HD横)</MenuItem>
-                  <MenuItem value="720x1280">720x1280 (HD縦)</MenuItem>
-                  <MenuItem value="1080x1920">1080x1920 (Full HD縦)</MenuItem>
+                  <MenuItem value="sora-turbo">Sora Turbo</MenuItem>
+                  <MenuItem value="sora-1.5">Sora 1.5</MenuItem>
+                  <MenuItem value="runway-gen3">Runway Gen-3</MenuItem>
+                  <MenuItem value="kling-2.0">Kling 2.0</MenuItem>
                 </Select>
               </FormControl>
               
               <FormControl fullWidth disabled={isProcessing}>
-                <InputLabel>動画の長さ</InputLabel>
+                <InputLabel>アスペクト比</InputLabel>
                 <Select
-                  value={seconds}
-                  onChange={(e) => setSeconds(Number(e.target.value))}
-                  label="動画の長さ"
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value as '16:9' | '9:16' | '1:1')}
+                  label="アスペクト比"
                 >
-                  <MenuItem value={3}>3秒</MenuItem>
-                  <MenuItem value={5}>5秒</MenuItem>
-                  <MenuItem value={10}>10秒</MenuItem>
-                  <MenuItem value={15}>15秒</MenuItem>
-                  <MenuItem value={20}>20秒</MenuItem>
+                  <MenuItem value="16:9">16:9 (横向き)</MenuItem>
+                  <MenuItem value="9:16">9:16 (縦向き)</MenuItem>
+                  <MenuItem value="1:1">1:1 (正方形)</MenuItem>
                 </Select>
               </FormControl>
             </Stack>
+            
+            <FormControl fullWidth disabled={isProcessing}>
+              <InputLabel>動画の長さ</InputLabel>
+              <Select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                label="動画の長さ"
+              >
+                <MenuItem value={3}>3秒</MenuItem>
+                <MenuItem value={5}>5秒</MenuItem>
+                <MenuItem value={10}>10秒</MenuItem>
+                <MenuItem value={15}>15秒</MenuItem>
+                <MenuItem value={20}>20秒</MenuItem>
+              </Select>
+            </FormControl>
             
             {!generatedVideo ? (
               <Button
