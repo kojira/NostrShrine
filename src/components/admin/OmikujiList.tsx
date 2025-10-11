@@ -40,6 +40,7 @@ export function OmikujiList() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
+  const [contentDialogOpen, setContentDialogOpen] = useState(false)
   
   useEffect(() => {
     fetchOmikujiList()
@@ -70,6 +71,16 @@ export function OmikujiList() {
   
   const handleJsonDialogClose = () => {
     setJsonDialogOpen(false)
+    setSelectedItem(null)
+  }
+  
+  const handleContentClick = (item: any) => {
+    setSelectedItem(item)
+    setContentDialogOpen(true)
+  }
+  
+  const handleContentDialogClose = () => {
+    setContentDialogOpen(false)
     setSelectedItem(null)
   }
   
@@ -159,7 +170,6 @@ export function OmikujiList() {
                   <TableCell>ID</TableCell>
                   <TableCell>運勢</TableCell>
                   <TableCell>内容</TableCell>
-                  <TableCell>ラッキーアイテム</TableCell>
                   <TableCell>作成日時</TableCell>
                   <TableCell>Event ID</TableCell>
                   <TableCell align="right">アクション</TableCell>
@@ -180,14 +190,12 @@ export function OmikujiList() {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
-                        {item.result.general.substring(0, 50)}...
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {item.result.lucky_item || '-'}
+                    <TableCell
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                      onClick={() => handleContentClick(item)}
+                    >
+                      <Typography variant="body2" noWrap sx={{ maxWidth: 400 }}>
+                        {item.result.general.substring(0, 80)}...
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -239,6 +247,101 @@ export function OmikujiList() {
           JSONを表示
         </MenuItem>
       </Menu>
+      
+      {/* 内容全文ダイアログ */}
+      <Dialog
+        open={contentDialogOpen}
+        onClose={handleContentDialogClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          おみくじ内容 ({selectedItem?.result.fortune})
+        </DialogTitle>
+        <DialogContent>
+          {selectedItem && (
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                総合運
+              </Typography>
+              <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-line' }}>
+                {selectedItem.result.general}
+              </Typography>
+              
+              {selectedItem.result.love && (
+                <>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    💕 恋愛運
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedItem.result.love}
+                  </Typography>
+                </>
+              )}
+              
+              {selectedItem.result.money && (
+                <>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    💰 金運
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedItem.result.money}
+                  </Typography>
+                </>
+              )}
+              
+              {selectedItem.result.health && (
+                <>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    🏥 健康運
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedItem.result.health}
+                  </Typography>
+                </>
+              )}
+              
+              {selectedItem.result.work && (
+                <>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    💼 仕事運
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedItem.result.work}
+                  </Typography>
+                </>
+              )}
+              
+              {selectedItem.result.lucky_item && (
+                <>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    🎁 ラッキーアイテム
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedItem.result.lucky_item}
+                  </Typography>
+                </>
+              )}
+              
+              {selectedItem.result.lucky_color && (
+                <>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    🎨 ラッキーカラー
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedItem.result.lucky_color}
+                  </Typography>
+                </>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleContentDialogClose}>
+            閉じる
+          </Button>
+        </DialogActions>
+      </Dialog>
       
       {/* JSONダイアログ */}
       <Dialog
