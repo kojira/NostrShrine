@@ -19,7 +19,12 @@ import {
   Stack,
   Tabs,
   Tab,
+  Paper,
+  InputAdornment,
+  IconButton,
 } from '@mui/material'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { VideoCall as VideoCallIcon, Upload as UploadIcon } from '@mui/icons-material'
 import { useVideoManagement } from '../../hooks/useVideoManagement'
 import { getDefaultShrineVisitPrompt, validatePrompt } from '../../services/video/cometapi'
@@ -55,6 +60,10 @@ export function VideoGenerator() {
   
   // Comet API生成用（専用のAPIキー）
   const [cometApiKey, setCometApiKey] = useState(() => localStorage.getItem('comet_api_key') || '')
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [showApiKey, setShowApiKey] = useState(false)
+  const hasCometApiKey = Boolean(cometApiKey)
+  
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
   const [model, setModel] = useState<'sora-2' | 'sora-turbo' | 'sora-1.5' | 'runway-gen3' | 'kling-2.0'>('sora-2')
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9')
@@ -76,13 +85,30 @@ export function VideoGenerator() {
     setSuccess(null)
   }
   
+  const handleSaveApiKey = () => {
+    if (apiKeyInput.trim()) {
+      localStorage.setItem('comet_api_key', apiKeyInput.trim())
+      setCometApiKey(apiKeyInput.trim())
+      setApiKeyInput('')
+      setSuccess('Comet API Keyを保存しました')
+    }
+  }
+  
+  const handleClearApiKey = () => {
+    if (confirm('Comet API Keyを削除しますか？')) {
+      localStorage.removeItem('comet_api_key')
+      setCometApiKey('')
+      setSuccess('Comet API Keyを削除しました')
+    }
+  }
+  
   const handleGenerate = async () => {
     setError(null)
     setSuccess(null)
     
     // バリデーション
-    if (!cometApiKey.trim()) {
-      setError('Comet API Keyを入力してください')
+    if (!hasCometApiKey) {
+      setError('Comet API Keyを設定してください')
       return
     }
     
@@ -93,9 +119,6 @@ export function VideoGenerator() {
     }
     
     try {
-      // API Keyを保存
-      localStorage.setItem('comet_api_key', cometApiKey)
-      
       // 動画を生成（アップロードはしない）
       const videoFile = await generateVideo(cometApiKey, {
         prompt,
@@ -241,15 +264,61 @@ export function VideoGenerator() {
         
         <TabPanel value={tabValue} index={0}>
           <Stack spacing={3}>
-            <TextField
-              label="Comet API Key"
-              type="password"
-              value={cometApiKey}
-              onChange={(e) => setCometApiKey(e.target.value)}
-              fullWidth
-              helperText="Comet API専用のキー（ブラウザに保存されます）"
-              disabled={isProcessing}
-            />
+            {/* APIキー管理 */}
+            <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Comet API Key 設定
+              </Typography>
+              
+              {hasCometApiKey ? (
+                <Box>
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    Comet API Keyが設定されています
+                  </Alert>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={handleClearApiKey}
+                  >
+                    APIキーを削除
+                  </Button>
+                </Box>
+              ) : (
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="Comet API Key"
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    type={showApiKey ? 'text' : 'password'}
+                    placeholder="your-comet-api-key"
+                    size="small"
+                    sx={{ mb: 1 }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            edge="end"
+                          >
+                            {showApiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleSaveApiKey}
+                    disabled={!apiKeyInput.trim()}
+                  >
+                    APIキーを保存
+                  </Button>
+                </Box>
+              )}
+            </Paper>
             
             <TextField
               label="プロンプト"
@@ -311,7 +380,7 @@ export function VideoGenerator() {
               <Button
                 variant="contained"
                 onClick={handleGenerate}
-                disabled={isProcessing}
+                disabled={isProcessing || !hasCometApiKey}
                 startIcon={<VideoCallIcon />}
                 sx={{
                   background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
