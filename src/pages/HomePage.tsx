@@ -2,7 +2,7 @@
  * ホームページ（一般ユーザー向け）
  */
 
-import { Box, Typography, Alert } from '@mui/material'
+import { Box, Typography, Alert, Stack } from '@mui/material'
 import { ShrineVisit } from '../components/ShrineVisit'
 import { Omikuji } from '../components/Omikuji'
 import { ShrineHistory } from '../components/ShrineHistory'
@@ -12,7 +12,7 @@ export function HomePage() {
   const { isAuthenticated, isNIP07Available } = useAuth()
 
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
       {!isAuthenticated && (
         <Box 
           sx={{ 
@@ -98,20 +98,31 @@ export function HomePage() {
             sx={{ 
               fontSize: { xs: '0.9rem', sm: '1rem' },
               px: { xs: 2, sm: 0 },
+              mb: { xs: 3, sm: 4 },
             }}
           >
             Nostrベースの神社へようこそ。参拝しておみくじを引きましょう。
           </Typography>
           
-          {/* 参拝機能 */}
-          <ShrineVisit />
-          
-          {/* おみくじ機能 */}
-          <Omikuji />
+          {/* 2カラムレイアウト（デスクトップ） */}
+          <Stack 
+            direction={{ xs: 'column', lg: 'row' }}
+            spacing={{ xs: 2, sm: 3, md: 4 }}
+            sx={{ alignItems: 'stretch' }}
+          >
+            <Box sx={{ flex: 1 }}>
+              {/* 参拝機能 */}
+              <ShrineVisit />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              {/* おみくじ機能 */}
+              <Omikuji />
+            </Box>
+          </Stack>
         </>
       )}
       
-      {/* 参拝履歴（ログインなしでも表示） */}
+      {/* 参拝履歴（ログインなしでも表示・全幅） */}
       <ShrineHistory />
     </Box>
   )

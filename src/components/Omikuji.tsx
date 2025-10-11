@@ -15,6 +15,8 @@ import {
   CircularProgress,
   Paper,
   Divider,
+  Card,
+  CardContent,
 } from '@mui/material'
 import { useOmikuji } from '../hooks/useOmikuji'
 import { useSettings } from '../hooks/useSettings'
@@ -105,21 +107,46 @@ export function Omikuji() {
   
   return (
     <>
-      <Button
-        variant="contained"
-        size="large"
-        onClick={handleOpen}
-        sx={{ m: 1 }}
-        disabled={!canDraw || !omikujiAvailable}
+      <Card 
+        sx={{ 
+          height: '100%',
+          background: 'rgba(26, 26, 26, 0.5)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+        }}
       >
-        🎴 おみくじを引く
-      </Button>
-      
-      {!canDraw && remainingMinutes > 0 && (
-        <Typography variant="caption" color="text.secondary" display="block">
-          次のおみくじまで残り {remainingMinutes} 分
-        </Typography>
-      )}
+        <CardContent>
+          <Box sx={{ textAlign: 'center', py: { xs: 2, sm: 3 } }}>
+            <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+              🎴 おみくじ
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              {omikujiAvailable ? '運勢を占いましょう' : 'おみくじを準備中...'}
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleOpen}
+              disabled={!canDraw || !omikujiAvailable}
+              fullWidth
+              sx={{ 
+                mt: 2,
+                background: 'linear-gradient(135deg, #EC4899 0%, #7C3AED 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #DB2777 0%, #6D28D9 100%)',
+                }
+              }}
+            >
+              🎴 おみくじを引く
+            </Button>
+            {!canDraw && remainingMinutes > 0 && (
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
+                次のおみくじまで残り {remainingMinutes} 分
+              </Typography>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
       
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>おみくじ</DialogTitle>

@@ -13,6 +13,9 @@ import {
   DialogActions,
   Alert,
   CircularProgress,
+  Card,
+  CardContent,
+  Box,
 } from '@mui/material'
 import { useShrineVisit } from '../hooks/useShrineVisit'
 
@@ -44,14 +47,40 @@ export function ShrineVisit() {
   
   return (
     <>
-      <Button
-        variant="contained"
-        size="large"
-        onClick={handleOpen}
-        sx={{ m: 1 }}
+      <Card 
+        sx={{ 
+          height: '100%',
+          background: 'rgba(26, 26, 26, 0.5)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+        }}
       >
-        🙏 参拝する
-      </Button>
+        <CardContent>
+          <Box sx={{ textAlign: 'center', py: { xs: 2, sm: 3 } }}>
+            <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+              🙏 参拝
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              参拝の記録をNostrに投稿します
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleOpen}
+              fullWidth
+              sx={{ 
+                mt: 2,
+                background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #6D28D9 0%, #DB2777 100%)',
+                }
+              }}
+            >
+              🙏 参拝する
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
       
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>参拝</DialogTitle>
