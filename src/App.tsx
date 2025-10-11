@@ -1,16 +1,72 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Container, Box, AppBar, Toolbar, Typography, Button, Chip } from '@mui/material'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { Container, Box, AppBar, Toolbar, Typography, Button, Chip, Avatar, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material'
+import { useState, useEffect } from 'react'
+import PersonIcon from '@mui/icons-material/Person'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from './contexts/AuthContext'
 import { useRelay } from './contexts/RelayContext'
 import { useAdminContext } from './contexts/AdminContext'
+import { profileCache } from './lib/cache/profileCache'
 import { HomePage } from './pages/HomePage'
 import { AdminPage } from './pages/AdminPage'
 
 function AppContent() {
-  const { isAuthenticated, npub, isNIP07Available, login, logout, isLoading } = useAuth()
-  const { relays, isConnected } = useRelay()
+  const { isAuthenticated, publicKey, isNIP07Available, login, logout, isLoading } = useAuth()
+  const { relays, isConnected, cachedClient } = useRelay()
   const { isAdmin } = useAdminContext()
-  const location = useLocation()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [profile, setProfile] = useState<{ name?: string; display_name?: string; picture?: string } | null>(null)
+
+  // プロフィール情報を取得
+  useEffect(() => {
+    if (!publicKey) return
+
+    const fetchProfile = async () => {
+      try {
+        const cached = await profileCache.get(publicKey)
+        if (cached) {
+          setProfile(cached.profile)
+        }
+
+        // リレーから最新のプロフィールを取得
+        await cachedClient.fetchEvents(
+          [{ kinds: [0], authors: [publicKey], limit: 1 }],
+          {
+            onCache: (cachedEvents) => {
+              if (cachedEvents.length > 0) {
+                const profileData = JSON.parse(cachedEvents[0].content)
+                setProfile(profileData)
+              }
+            },
+            onRelay: (newEvents) => {
+              if (newEvents.length > 0) {
+                const profileData = JSON.parse(newEvents[0].content)
+                setProfile(profileData)
+              }
+            }
+          }
+        )
+      } catch (err) {
+        console.error('[App] Failed to fetch profile:', err)
+      }
+    }
+
+    fetchProfile()
+  }, [publicKey, cachedClient])
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleLogout = () => {
+    handleMenuClose()
+    logout()
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)' }}>
@@ -34,52 +90,13 @@ function AppContent() {
               WebkitTextFillColor: 'transparent',
               fontWeight: 700,
               fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              mr: { xs: 2, sm: 3 },
             }}
           >
             <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '8px' }}>
               ⛩️ <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>NostrShrine</Box>
             </Link>
           </Typography>
-          
-          {/* ナビゲーション */}
-          {isAuthenticated && (
-            <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, mr: { xs: 1, sm: 2 } }}>
-              <Button
-                component={Link}
-                to="/"
-                variant={location.pathname === '/' ? 'contained' : 'text'}
-                size={window.innerWidth < 600 ? 'small' : 'medium'}
-                sx={{
-                  ...(location.pathname === '/' && {
-                    background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-                  }),
-                  minWidth: { xs: 'auto', sm: '64px' },
-                  px: { xs: 1.5, sm: 2 },
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>ホーム</Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>🏠</Box>
-              </Button>
-              {isAdmin && (
-                <Button
-                  component={Link}
-                  to="/admin"
-                  variant={location.pathname === '/admin' ? 'contained' : 'text'}
-                  size={window.innerWidth < 600 ? 'small' : 'medium'}
-                  sx={{
-                    ...(location.pathname === '/admin' && {
-                      background: 'linear-gradient(135deg, #EC4899 0%, #7C3AED 100%)',
-                    }),
-                    minWidth: { xs: 'auto', sm: '64px' },
-                    px: { xs: 1.5, sm: 2 },
-                  }}
-                >
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>管理</Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>⚙️</Box>
-                </Button>
-              )}
-            </Box>
-          )}
           
           {relays.length > 0 && (
             <Chip
@@ -97,41 +114,103 @@ function AppContent() {
           )}
           
           {isAuthenticated ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
-              <Typography 
-                variant="caption" 
+            <>
+              <Box 
+                onClick={handleMenuOpen}
                 sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  px: { xs: 1, sm: 2 },
-                  py: 0.5,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1.5,
+                  cursor: 'pointer',
+                  px: 2,
+                  py: 1,
+                  borderRadius: 3,
                   background: 'rgba(124, 58, 237, 0.1)',
                   border: '1px solid rgba(124, 58, 237, 0.3)',
-                  borderRadius: 2,
-                  fontFamily: 'monospace',
-                  display: { xs: 'none', sm: 'block' },
-                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                }}
-              >
-                {npub?.slice(0, 12)}...
-              </Typography>
-              <Button 
-                onClick={logout} 
-                variant="outlined"
-                size="small"
-                sx={{
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  transition: 'all 0.2s',
                   '&:hover': {
-                    borderColor: 'rgba(239, 68, 68, 0.5)',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                  },
-                  minWidth: { xs: 'auto', sm: '80px' },
-                  px: { xs: 1, sm: 2 },
+                    background: 'rgba(124, 58, 237, 0.2)',
+                    border: '1px solid rgba(124, 58, 237, 0.5)',
+                  }
                 }}
               >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>ログアウト</Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>🚪</Box>
-              </Button>
-            </Box>
+                <Avatar 
+                  src={profile?.picture}
+                  alt={profile?.display_name || profile?.name}
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    border: '2px solid rgba(124, 58, 237, 0.5)',
+                  }}
+                >
+                  {!profile?.picture && <PersonIcon />}
+                </Avatar>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontWeight: 600,
+                    display: { xs: 'none', sm: 'block' },
+                  }}
+                >
+                  {profile?.display_name || profile?.name || `npub...${publicKey?.slice(-8)}`}
+                </Typography>
+              </Box>
+              
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                sx={{
+                  mt: 1,
+                  '& .MuiPaper-root': {
+                    background: 'rgba(26, 26, 26, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 2,
+                    minWidth: 200,
+                  }
+                }}
+              >
+                {isAdmin && (
+                  <MenuItem 
+                    component={Link} 
+                    to="/admin" 
+                    onClick={handleMenuClose}
+                    sx={{
+                      '&:hover': {
+                        background: 'rgba(124, 58, 237, 0.2)',
+                      }
+                    }}
+                  >
+                    <ListItemIcon>
+                      <AdminPanelSettingsIcon fontSize="small" sx={{ color: '#7C3AED' }} />
+                    </ListItemIcon>
+                    <ListItemText>管理画面</ListItemText>
+                  </MenuItem>
+                )}
+                <MenuItem 
+                  onClick={handleLogout}
+                  sx={{
+                    '&:hover': {
+                      background: 'rgba(239, 68, 68, 0.2)',
+                    }
+                  }}
+                >
+                  <ListItemIcon>
+                    <LogoutIcon fontSize="small" sx={{ color: '#EF4444' }} />
+                  </ListItemIcon>
+                  <ListItemText>ログアウト</ListItemText>
+                </MenuItem>
+              </Menu>
+            </>
           ) : (
             <Button
               onClick={login}
