@@ -70,15 +70,26 @@ pnpm run build
 
 ## 🔧 環境変数
 
+### ローカル開発
+
 `.env` ファイルで以下の変数を設定できます：
 
 ```env
 # 管理者の公開鍵（カンマ区切りで複数指定可能）
 VITE_ADMIN_PUBKEYS=npub1xxx,npub1yyy
 
-# デフォルトリレー（オプション）
+# デフォルトリレー（オプション、デフォルト: wss://r.kojira.io）
 VITE_DEFAULT_RELAY=wss://r.kojira.io
 ```
+
+### GitHub Pages デプロイ
+
+GitHub Pagesにデプロイする場合は、リポジトリの **Settings > Secrets and variables > Actions** で以下のシークレットを設定してください：
+
+- `VITE_ADMIN_PUBKEYS`: 管理者の公開鍵（カンマ区切り）
+- `VITE_DEFAULT_RELAY`: デフォルトリレー（例: `wss://r.kojira.io`）
+
+これらの環境変数はビルド時に埋め込まれます。
 
 ## 📱 使い方
 
