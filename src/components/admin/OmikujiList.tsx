@@ -25,22 +25,33 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Checkbox,
 } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import CodeIcon from '@mui/icons-material/Code'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { useOmikujiList } from '../../hooks/useOmikujiList'
+import { useAuth } from '../../contexts/AuthContext'
+import { useRelay } from '../../contexts/RelayContext'
+import { KIND } from '../../config/constants'
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
 export function OmikujiList() {
   const { omikujiList, isLoading, error, fetchOmikujiList, totalCount } = useOmikujiList()
+  const { publicKey } = useAuth()
+  const { publishEvent } = useRelay()
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
   const [contentDialogOpen, setContentDialogOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<'selected' | 'single' | null>(null)
   
   useEffect(() => {
     fetchOmikujiList()
@@ -92,6 +103,97 @@ export function OmikujiList() {
     })
   }
   
+  // チェックボックス操作
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const allIds = new Set(paginatedList.map(item => item.id))
+      setSelectedIds(allIds)
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+  
+  const handleSelectOne = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+  
+  // 削除処理
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return
+    setDeleteTarget('selected')
+    setDeleteConfirmOpen(true)
+  }
+  
+  const handleDeleteSingle = (item: any) => {
+    setSelectedItem(item)
+    setDeleteTarget('single')
+    setDeleteConfirmOpen(true)
+    handleMenuClose()
+  }
+  
+  const handleDeleteConfirm = async () => {
+    if (!publicKey) return
+    
+    setIsDeleting(true)
+    setDeleteConfirmOpen(false)
+    
+    try {
+      const itemsToDelete = deleteTarget === 'single' 
+        ? [selectedItem]
+        : omikujiList.filter(item => selectedIds.has(item.id))
+      
+      // NIP-09削除イベントを作成して公開
+      for (const item of itemsToDelete) {
+        const deleteEvent = {
+          id: '',
+          pubkey: publicKey,
+          created_at: Math.floor(Date.now() / 1000),
+          kind: 5, // NIP-09 Event Deletion
+          tags: [
+            ['e', item.eventId],
+            ['k', KIND.OMIKUJI_DATA.toString()],
+          ],
+          content: 'おみくじを削除しました',
+          sig: '',
+        }
+        
+        // NIP-07で署名して公開
+        if (window.nostr) {
+          const signedEvent = await window.nostr.signEvent(deleteEvent)
+          await publishEvent(signedEvent)
+        }
+      }
+      
+      // 選択をクリア
+      setSelectedIds(new Set())
+      
+      // リストを再読み込み
+      setTimeout(() => {
+        fetchOmikujiList()
+      }, 1000)
+      
+      alert(`${itemsToDelete.length}件のおみくじを削除しました`)
+    } catch (err) {
+      console.error('[OmikujiList] Delete error:', err)
+      alert('削除に失敗しました')
+    } finally {
+      setIsDeleting(false)
+      setDeleteTarget(null)
+    }
+  }
+  
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false)
+    setDeleteTarget(null)
+    setSelectedItem(null)
+  }
+  
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000)
     return date.toLocaleString('ja-JP', {
@@ -121,16 +223,33 @@ export function OmikujiList() {
     page * rowsPerPage + rowsPerPage
   )
   
+  const isAllSelected = paginatedList.length > 0 && paginatedList.every(item => selectedIds.has(item.id))
+  const isSomeSelected = paginatedList.some(item => selectedIds.has(item.id))
+  
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
-          📋 おみくじ一覧
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h6">
+            📋 おみくじ一覧
+          </Typography>
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteSelected}
+              disabled={isDeleting}
+            >
+              選択削除 ({selectedIds.size})
+            </Button>
+          )}
+        </Box>
         <Button
           startIcon={<RefreshIcon />}
           onClick={fetchOmikujiList}
-          disabled={isLoading}
+          disabled={isLoading || isDeleting}
           size="small"
         >
           更新
@@ -167,6 +286,14 @@ export function OmikujiList() {
             <Table size="small">
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={isAllSelected}
+                      indeterminate={isSomeSelected && !isAllSelected}
+                      onChange={handleSelectAll}
+                      disabled={isDeleting}
+                    />
+                  </TableCell>
                   <TableCell>ID</TableCell>
                   <TableCell>運勢</TableCell>
                   <TableCell>内容</TableCell>
@@ -177,7 +304,14 @@ export function OmikujiList() {
               </TableHead>
               <TableBody>
                 {paginatedList.map((item) => (
-                  <TableRow key={item.eventId} hover>
+                  <TableRow key={item.eventId} hover selected={selectedIds.has(item.id)}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => handleSelectOne(item.id)}
+                        disabled={isDeleting}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
                         {item.id}
@@ -211,7 +345,17 @@ export function OmikujiList() {
                     <TableCell align="right">
                       <IconButton
                         size="small"
+                        color="error"
+                        onClick={() => handleDeleteSingle(item)}
+                        disabled={isDeleting}
+                        sx={{ mr: 0.5 }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
                         onClick={(e) => handleMenuOpen(e, item)}
+                        disabled={isDeleting}
                       >
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
@@ -394,6 +538,33 @@ export function OmikujiList() {
           </Button>
           <Button onClick={handleJsonDialogClose}>
             閉じる
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* 削除確認ダイアログ */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+      >
+        <DialogTitle>おみくじ削除の確認</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {deleteTarget === 'single'
+              ? `おみくじ「${selectedItem?.id}」を削除しますか？`
+              : `選択した${selectedIds.size}件のおみくじを削除しますか？`}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            削除イベント（kind 5）をリレーに送信します。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>
+            キャンセル
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            削除
           </Button>
         </DialogActions>
       </Dialog>
