@@ -136,66 +136,10 @@ function AppContent() {
       {/* メインコンテンツ */}
       <Container maxWidth="md" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
         <Box sx={{ mt: 4 }}>
-          {!isAuthenticated ? (
-            <Box 
-              sx={{ 
-                textAlign: 'center', 
-                py: 12,
-                px: 4,
-                background: 'rgba(26, 26, 26, 0.5)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: 4,
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-              }}
-            >
-              <Typography 
-                variant="h2" 
-                gutterBottom
-                sx={{
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontWeight: 700,
-                  mb: 3,
-                }}
-              >
-                ⛩️ NostrShrine へようこそ
-              </Typography>
-              <Typography 
-                variant="h6" 
-                color="text.secondary" 
-                paragraph
-                sx={{ mb: 4, lineHeight: 1.8 }}
-              >
-                Nostrベースの神社です。<br />
-                NIP-07でログインして参拝しましょう。
-              </Typography>
-              {!isNIP07Available && (
-                <Box 
-                  sx={{ 
-                    p: 3, 
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: 2,
-                    maxWidth: 500,
-                    mx: 'auto',
-                  }}
-                >
-                  <Typography color="error" variant="body1" fontWeight={600}>
-                    ⚠️ NIP-07拡張機能が見つかりません
-                  </Typography>
-                  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                    nos2x、Alby、Flamingo等をインストールしてください。
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          ) : (
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/admin" element={<AdminPage />} />
-            </Routes>
-          )}
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            {isAuthenticated && <Route path="/admin" element={<AdminPage />} />}
+          </Routes>
         </Box>
       </Container>
 
