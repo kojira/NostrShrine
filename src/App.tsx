@@ -117,8 +117,15 @@ function AppContent() {
           {/* テーマ切り替えボタン */}
           <IconButton 
             onClick={toggleTheme} 
-            color="inherit"
-            sx={{ mr: 1 }}
+            sx={{ 
+              mr: 1,
+              color: mode === 'dark' ? 'white' : 'black',
+              '&:hover': {
+                background: mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.1)' 
+                  : 'rgba(0, 0, 0, 0.05)',
+              }
+            }}
           >
             {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
@@ -130,8 +137,16 @@ function AppContent() {
               sx={{ 
                 mr: { xs: 0.5, sm: 2 },
                 display: { xs: 'none', md: 'flex' },
-                background: isConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                border: isConnected ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                background: (theme) => isConnected 
+                  ? 'rgba(16, 185, 129, 0.1)' 
+                  : theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.05)' 
+                    : 'rgba(0, 0, 0, 0.05)',
+                border: (theme) => isConnected 
+                  ? '1px solid rgba(16, 185, 129, 0.3)' 
+                  : theme.palette.mode === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.1)'
+                    : '1px solid rgba(0, 0, 0, 0.1)',
                 color: isConnected ? '#10B981' : 'text.secondary',
                 minWidth: 'auto',
               }}
@@ -150,12 +165,20 @@ function AppContent() {
                   px: 2,
                   py: 1,
                   borderRadius: 3,
-                  background: 'rgba(124, 58, 237, 0.1)',
-                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                  background: (theme) => theme.palette.mode === 'dark'
+                    ? 'rgba(124, 58, 237, 0.1)'
+                    : 'rgba(124, 58, 237, 0.08)',
+                  border: (theme) => theme.palette.mode === 'dark'
+                    ? '1px solid rgba(124, 58, 237, 0.3)'
+                    : '1px solid rgba(124, 58, 237, 0.25)',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    background: 'rgba(124, 58, 237, 0.2)',
-                    border: '1px solid rgba(124, 58, 237, 0.5)',
+                    background: (theme) => theme.palette.mode === 'dark'
+                      ? 'rgba(124, 58, 237, 0.2)'
+                      : 'rgba(124, 58, 237, 0.15)',
+                    border: (theme) => theme.palette.mode === 'dark'
+                      ? '1px solid rgba(124, 58, 237, 0.5)'
+                      : '1px solid rgba(124, 58, 237, 0.4)',
                   }
                 }}
               >
@@ -165,7 +188,9 @@ function AppContent() {
                   sx={{ 
                     width: 32, 
                     height: 32,
-                    border: '2px solid rgba(124, 58, 237, 0.5)',
+                    border: (theme) => theme.palette.mode === 'dark'
+                      ? '2px solid rgba(124, 58, 237, 0.5)'
+                      : '2px solid rgba(124, 58, 237, 0.4)',
                   }}
                 >
                   {!profile?.picture && <PersonIcon />}
@@ -196,9 +221,13 @@ function AppContent() {
                 sx={{
                   mt: 1,
                   '& .MuiPaper-root': {
-                    background: 'rgba(26, 26, 26, 0.95)',
+                    background: (theme) => theme.palette.mode === 'dark'
+                      ? 'rgba(26, 26, 26, 0.95)'
+                      : 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: (theme) => theme.palette.mode === 'dark'
+                      ? '1px solid rgba(255, 255, 255, 0.1)'
+                      : '1px solid rgba(0, 0, 0, 0.1)',
                     borderRadius: 2,
                     minWidth: 200,
                   }
