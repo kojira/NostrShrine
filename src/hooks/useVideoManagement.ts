@@ -26,14 +26,10 @@ export function useVideoManagement() {
   const [progress, setProgress] = useState('')
   
   /**
-   * Sora APIで動画を生成してアップロード
+   * Sora APIで動画を生成（アップロードなし）
    */
-  const generateAndUploadVideo = useCallback(
-    async (apiKey: string, options: SoraGenerationOptions): Promise<VideoRecord> => {
-      if (!publicKey) {
-        throw new Error('Not authenticated')
-      }
-      
+  const generateVideo = useCallback(
+    async (apiKey: string, options: SoraGenerationOptions): Promise<File> => {
       try {
         setIsGenerating(true)
         setProgress('動画を生成中...')
@@ -48,28 +44,55 @@ export function useVideoManagement() {
           targetBitrate: 2_000_000, // 2Mbps
         })
         
+        setProgress('')
         setIsGenerating(false)
+        
+        return compressedVideo
+      } catch (error) {
+        setIsGenerating(false)
+        setProgress('')
+        throw error
+      }
+    },
+    []
+  )
+  
+  /**
+   * 生成済み動画をアップロードしてNostrに登録
+   */
+  const uploadGeneratedVideo = useCallback(
+    async (
+      file: File,
+      prompt: string,
+      title?: string,
+      description?: string
+    ): Promise<VideoRecord> => {
+      if (!publicKey) {
+        throw new Error('Not authenticated')
+      }
+      
+      try {
         setIsUploading(true)
         setProgress('動画をアップロード中...')
         
-        // 3. share.yabu.meにアップロード
-        const videoUrl = await uploadToShareYabume(compressedVideo)
+        // 1. share.yabu.meにアップロード
+        const videoUrl = await uploadToShareYabume(file)
         
         setProgress('Nostrに保存中...')
         
-        // 4. Nostrイベント作成
+        // 2. Nostrイベント作成
         const videoId = `video-${Date.now()}`
         const videoData: ShrineVideoData = {
           url: videoUrl,
-          title: options.prompt.substring(0, 50),
-          description: options.prompt,
-          mimeType: compressedVideo.type,
-          prompt: options.prompt,
+          title: title || prompt.substring(0, 50),
+          description: description || prompt,
+          mimeType: file.type,
+          prompt: prompt,
         }
         
         const event = await createShrineVideoEvent(publicKey, videoId, videoData)
         
-        // 5. リレーに送信
+        // 3. リレーに送信
         if (cachedClient) {
           await cachedClient.publishEvent(event)
         }
@@ -83,7 +106,6 @@ export function useVideoManagement() {
           data: videoData,
         }
       } catch (error) {
-        setIsGenerating(false)
         setIsUploading(false)
         setProgress('')
         throw error
@@ -183,7 +205,8 @@ export function useVideoManagement() {
     isUploading,
     isProcessing: isGenerating || isUploading,
     progress,
-    generateAndUploadVideo,
+    generateVideo,
+    uploadGeneratedVideo,
     uploadLocalVideo,
     deleteVideo,
   }

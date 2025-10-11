@@ -46,7 +46,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export function VideoGenerator() {
-  const { generateAndUploadVideo, uploadLocalVideo, isProcessing, progress } =
+  const { generateVideo, uploadGeneratedVideo, uploadLocalVideo, isProcessing, progress } =
     useVideoManagement()
   
   const [tabValue, setTabValue] = useState(0)
@@ -58,6 +58,11 @@ export function VideoGenerator() {
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
   const [size, setSize] = useState<'1280x720' | '1920x1080' | '720x1280' | '1080x1920'>('1280x720')
   const [seconds, setSeconds] = useState(5)
+  
+  // 生成された動画のプレビュー
+  const [generatedVideo, setGeneratedVideo] = useState<File | null>(null)
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null)
+  const [generatedPrompt, setGeneratedPrompt] = useState<string>('')
   
   // ローカルアップロード用
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -90,18 +95,63 @@ export function VideoGenerator() {
       // API Keyを保存（おみくじと同じキーを使用）
       localStorage.setItem('openai_api_key', apiKey)
       
-      await generateAndUploadVideo(apiKey, {
+      // 動画を生成（アップロードはしない）
+      const videoFile = await generateVideo(apiKey, {
         prompt,
         size,
         seconds,
       })
       
-      setSuccess('動画を生成してアップロードしました！')
-      setPrompt(getDefaultShrineVisitPrompt()) // リセット
+      // プレビュー用のURLを作成
+      const videoUrl = URL.createObjectURL(videoFile)
+      
+      setGeneratedVideo(videoFile)
+      setGeneratedVideoUrl(videoUrl)
+      setGeneratedPrompt(prompt)
+      setSuccess('動画を生成しました！プレビューを確認してアップロードしてください。')
     } catch (err) {
       console.error('[VideoGenerator] Failed to generate:', err)
       setError(err instanceof Error ? err.message : '動画の生成に失敗しました')
     }
+  }
+  
+  const handleUploadGenerated = async () => {
+    if (!generatedVideo) {
+      setError('生成された動画がありません')
+      return
+    }
+    
+    setError(null)
+    setSuccess(null)
+    
+    try {
+      await uploadGeneratedVideo(generatedVideo, generatedPrompt)
+      
+      setSuccess('動画をアップロードしました！')
+      
+      // クリーンアップ
+      if (generatedVideoUrl) {
+        URL.revokeObjectURL(generatedVideoUrl)
+      }
+      setGeneratedVideo(null)
+      setGeneratedVideoUrl(null)
+      setGeneratedPrompt('')
+      setPrompt(getDefaultShrineVisitPrompt()) // リセット
+    } catch (err) {
+      console.error('[VideoGenerator] Failed to upload:', err)
+      setError(err instanceof Error ? err.message : 'アップロードに失敗しました')
+    }
+  }
+  
+  const handleCancelGenerated = () => {
+    if (generatedVideoUrl) {
+      URL.revokeObjectURL(generatedVideoUrl)
+    }
+    setGeneratedVideo(null)
+    setGeneratedVideoUrl(null)
+    setGeneratedPrompt('')
+    setError(null)
+    setSuccess(null)
   }
   
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,20 +291,79 @@ export function VideoGenerator() {
               </FormControl>
             </Stack>
             
-            <Button
-              variant="contained"
-              onClick={handleGenerate}
-              disabled={isProcessing}
-              startIcon={<VideoCallIcon />}
-              sx={{
-                background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #6D28D9 0%, #DB2777 100%)',
-                },
-              }}
-            >
-              動画を生成してアップロード
-            </Button>
+            {!generatedVideo ? (
+              <Button
+                variant="contained"
+                onClick={handleGenerate}
+                disabled={isProcessing}
+                startIcon={<VideoCallIcon />}
+                sx={{
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #6D28D9 0%, #DB2777 100%)',
+                  },
+                }}
+              >
+                動画を生成
+              </Button>
+            ) : (
+              <>
+                {/* 生成された動画のプレビュー */}
+                <Box
+                  sx={{
+                    border: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? '2px solid rgba(124, 58, 237, 0.3)'
+                        : '2px solid rgba(124, 58, 237, 0.25)',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    bgcolor: 'black',
+                  }}
+                >
+                  <video
+                    src={generatedVideoUrl || ''}
+                    controls
+                    autoPlay
+                    loop
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                    }}
+                  />
+                </Box>
+                
+                <Typography variant="body2" color="text.secondary">
+                  ファイルサイズ: {(generatedVideo.size / 1024 / 1024).toFixed(2)}MB
+                </Typography>
+                
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="contained"
+                    onClick={handleUploadGenerated}
+                    disabled={isProcessing}
+                    startIcon={<UploadIcon />}
+                    fullWidth
+                    sx={{
+                      background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #6D28D9 0%, #DB2777 100%)',
+                      },
+                    }}
+                  >
+                    アップロード
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handleCancelGenerated}
+                    disabled={isProcessing}
+                    fullWidth
+                  >
+                    キャンセル
+                  </Button>
+                </Stack>
+              </>
+            )}
           </Stack>
         </TabPanel>
         
