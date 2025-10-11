@@ -50,9 +50,16 @@ export function ShrineHistory() {
   }
   
   return (
-    <Box sx={{ mt: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
+    <Box sx={{ mt: { xs: 3, sm: 4 } }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 2,
+        flexWrap: { xs: 'wrap', sm: 'nowrap' },
+        gap: { xs: 1, sm: 0 },
+      }}>
+        <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
           🙏 みんなの参拝履歴
         </Typography>
         <Button
@@ -60,6 +67,7 @@ export function ShrineHistory() {
           onClick={fetchHistory}
           disabled={isLoading}
           size="small"
+          sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
         >
           更新
         </Button>
@@ -72,50 +80,69 @@ export function ShrineHistory() {
       )}
       
       {isLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 1 }}>
           <CircularProgress />
-          <Typography sx={{ ml: 2 }}>履歴を読み込み中...</Typography>
+          <Typography sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>履歴を読み込み中...</Typography>
         </Box>
       )}
       
       {!isLoading && history.length === 0 && (
-        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
-          <Typography color="text.secondary">
+        <Paper sx={{ p: { xs: 2, sm: 3 }, textAlign: 'center', bgcolor: 'background.default' }}>
+          <Typography color="text.secondary" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
             まだ参拝記録がありません
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
             「参拝する」ボタンから参拝してみましょう
           </Typography>
         </Paper>
       )}
       
       {!isLoading && history.length > 0 && (
-        <Paper sx={{ maxHeight: 400, overflow: 'auto' }}>
-          <List>
+        <Paper sx={{ maxHeight: { xs: 500, sm: 400 }, overflow: 'auto' }}>
+          <List sx={{ p: { xs: 0, sm: 1 } }}>
             {history.map((record, index) => (
               <Box key={record.id}>
                 {index > 0 && <Divider />}
-                <ListItem alignItems="flex-start">
-                  <ListItemAvatar>
-                    <Avatar
-                      src={record.profile?.picture}
-                      alt={record.profile?.name || record.profile?.display_name}
-                    >
-                      {!record.profile?.picture && <PersonIcon />}
-                    </Avatar>
+                <ListItem 
+                  alignItems="flex-start"
+                  sx={{ 
+                    py: { xs: 1.5, sm: 2 },
+                    px: { xs: 1, sm: 2 },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                  }}
+                >
+                  <ListItemAvatar sx={{ minWidth: { xs: '100%', sm: 56 }, mb: { xs: 1, sm: 0 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Avatar
+                        src={record.profile?.picture}
+                        alt={record.profile?.name || record.profile?.display_name}
+                        sx={{ width: { xs: 36, sm: 40 }, height: { xs: 36, sm: 40 } }}
+                      >
+                        {!record.profile?.picture && <PersonIcon />}
+                      </Avatar>
+                      <Typography variant="subtitle2" sx={{ display: { xs: 'block', sm: 'none' }, fontSize: '0.9rem' }}>
+                        {record.profile?.display_name || record.profile?.name || `npub...${record.pubkey.slice(-8)}`}
+                      </Typography>
+                    </Box>
                   </ListItemAvatar>
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 0.5, sm: 0 },
+                      }}>
                         <Box>
-                          <Typography variant="subtitle2" component="span">
+                          <Typography variant="subtitle2" component="span" sx={{ display: { xs: 'none', sm: 'inline' }, fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
                             {record.profile?.display_name || record.profile?.name || `npub...${record.pubkey.slice(-8)}`}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" component="span" sx={{ ml: 1 }}>
+                          <Typography variant="caption" color="text.secondary" component="span" sx={{ ml: { xs: 0, sm: 1 }, fontSize: { xs: '0.75rem', sm: '0.8rem' } }}>
                             ⛩️ {record.shrine_name}
                           </Typography>
                         </Box>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                           {formatDate(record.timestamp)}
                         </Typography>
                       </Box>
@@ -123,11 +150,18 @@ export function ShrineHistory() {
                     secondary={
                       <Box component="span" sx={{ display: 'block' }}>
                         {record.message && (
-                          <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                          <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                             💬 {record.message}
                           </Box>
                         )}
-                        <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.75rem', color: 'text.secondary', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                        <Box component="span" sx={{ 
+                          display: 'block', 
+                          mt: 0.5, 
+                          fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                          color: 'text.secondary', 
+                          fontFamily: 'monospace', 
+                          wordBreak: 'break-all',
+                        }}>
                           Event ID: {record.id}
                         </Box>
                       </Box>
@@ -141,7 +175,7 @@ export function ShrineHistory() {
       )}
       
       {!isLoading && history.length > 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
           全{history.length}件の参拝記録
         </Typography>
       )}

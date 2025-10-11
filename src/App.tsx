@@ -24,7 +24,7 @@ function AppContent() {
         }} 
         elevation={0}
       >
-        <Toolbar sx={{ py: 1 }}>
+        <Toolbar sx={{ py: { xs: 0.5, sm: 1 }, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
           <Typography 
             variant="h5" 
             sx={{ 
@@ -33,40 +33,49 @@ function AppContent() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontWeight: 700,
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
             }}
           >
             <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ⛩️ NostrShrine
+              ⛩️ <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>NostrShrine</Box>
             </Link>
           </Typography>
           
           {/* ナビゲーション */}
           {isAuthenticated && (
-            <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+            <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, mr: { xs: 1, sm: 2 } }}>
               <Button
                 component={Link}
                 to="/"
                 variant={location.pathname === '/' ? 'contained' : 'text'}
+                size={window.innerWidth < 600 ? 'small' : 'medium'}
                 sx={{
                   ...(location.pathname === '/' && {
                     background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-                  })
+                  }),
+                  minWidth: { xs: 'auto', sm: '64px' },
+                  px: { xs: 1.5, sm: 2 },
                 }}
               >
-                ホーム
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>ホーム</Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>🏠</Box>
               </Button>
               {isAdmin && (
                 <Button
                   component={Link}
                   to="/admin"
                   variant={location.pathname === '/admin' ? 'contained' : 'text'}
+                  size={window.innerWidth < 600 ? 'small' : 'medium'}
                   sx={{
                     ...(location.pathname === '/admin' && {
                       background: 'linear-gradient(135deg, #EC4899 0%, #7C3AED 100%)',
-                    })
+                    }),
+                    minWidth: { xs: 'auto', sm: '64px' },
+                    px: { xs: 1.5, sm: 2 },
                   }}
                 >
-                  管理画面
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>管理</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>⚙️</Box>
                 </Button>
               )}
             </Box>
@@ -74,29 +83,33 @@ function AppContent() {
           
           {relays.length > 0 && (
             <Chip
-              label={isConnected ? '🟢 接続中' : '⚪ 未接続'}
+              label={isConnected ? '🟢' : '⚪'}
               size="small"
               sx={{ 
-                mr: 2,
+                mr: { xs: 0.5, sm: 2 },
+                display: { xs: 'none', md: 'flex' },
                 background: isConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
                 border: isConnected ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
                 color: isConnected ? '#10B981' : 'text.secondary',
+                minWidth: 'auto',
               }}
             />
           )}
           
           {isAuthenticated ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  mr: 1,
-                  px: 2,
+                  mr: { xs: 0.5, sm: 1 },
+                  px: { xs: 1, sm: 2 },
                   py: 0.5,
                   background: 'rgba(124, 58, 237, 0.1)',
                   border: '1px solid rgba(124, 58, 237, 0.3)',
                   borderRadius: 2,
                   fontFamily: 'monospace',
+                  display: { xs: 'none', sm: 'block' },
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
                 }}
               >
                 {npub?.slice(0, 12)}...
@@ -104,38 +117,58 @@ function AppContent() {
               <Button 
                 onClick={logout} 
                 variant="outlined"
+                size="small"
                 sx={{
                   borderColor: 'rgba(255, 255, 255, 0.2)',
                   '&:hover': {
                     borderColor: 'rgba(239, 68, 68, 0.5)',
                     background: 'rgba(239, 68, 68, 0.1)',
-                  }
+                  },
+                  minWidth: { xs: 'auto', sm: '80px' },
+                  px: { xs: 1, sm: 2 },
                 }}
               >
-                ログアウト
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>ログアウト</Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>🚪</Box>
               </Button>
             </Box>
           ) : (
             <Button
               onClick={login}
               variant="contained"
+              size="small"
               disabled={!isNIP07Available || isLoading}
               sx={{
                 background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
                 '&:hover': {
                   background: 'linear-gradient(135deg, #6D28D9 0%, #DB2777 100%)',
-                }
+                },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                px: { xs: 1.5, sm: 2 },
               }}
             >
-              {isLoading ? '確認中...' : 'NIP-07でログイン'}
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                {isLoading ? '確認中...' : 'NIP-07でログイン'}
+              </Box>
+              <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                {isLoading ? '...' : 'ログイン'}
+              </Box>
             </Button>
           )}
         </Toolbar>
       </AppBar>
 
       {/* メインコンテンツ */}
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        <Box sx={{ mt: 4 }}>
+      <Container 
+        maxWidth="xl" 
+        sx={{ 
+          mt: { xs: 2, sm: 3, md: 4 }, 
+          mb: { xs: 2, sm: 3, md: 4 }, 
+          px: { xs: 2, sm: 3, md: 4 },
+          flexGrow: 1,
+        }}
+      >
+        <Box sx={{ mt: { xs: 2, sm: 3, md: 4 } }}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             {isAuthenticated && <Route path="/admin" element={<AdminPage />} />}

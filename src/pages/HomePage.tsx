@@ -17,12 +17,12 @@ export function HomePage() {
         <Box 
           sx={{ 
             textAlign: 'center', 
-            py: 8,
-            px: 4,
-            mb: 4,
+            py: { xs: 4, sm: 6, md: 8 },
+            px: { xs: 2, sm: 3, md: 4 },
+            mb: { xs: 3, sm: 4 },
             background: 'rgba(26, 26, 26, 0.5)',
             backdropFilter: 'blur(20px)',
-            borderRadius: 4,
+            borderRadius: { xs: 3, sm: 4 },
             border: '1px solid rgba(255, 255, 255, 0.05)',
           }}
         >
@@ -34,7 +34,8 @@ export function HomePage() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontWeight: 700,
-              mb: 3,
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
             }}
           >
             ⛩️ NostrShrine へようこそ
@@ -43,7 +44,12 @@ export function HomePage() {
             variant="h6" 
             color="text.secondary" 
             paragraph
-            sx={{ mb: 3, lineHeight: 1.8 }}
+            sx={{ 
+              mb: { xs: 2, sm: 3 }, 
+              lineHeight: 1.8,
+              fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' },
+              px: { xs: 1, sm: 2 },
+            }}
           >
             Nostrベースの神社です。<br />
             NIP-07でログインして参拝しておみくじを引きましょう。
@@ -52,16 +58,16 @@ export function HomePage() {
             <Alert 
               severity="error"
               sx={{ 
-                maxWidth: 500,
+                maxWidth: { xs: '100%', sm: 500 },
                 mx: 'auto',
                 background: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
               }}
             >
-              <Typography variant="body2" fontWeight={600}>
+              <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                 ⚠️ NIP-07拡張機能が見つかりません
               </Typography>
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
+              <Typography variant="body2" sx={{ mt: 0.5, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 nos2x、Alby、Flamingo等をインストールしてください。
               </Typography>
             </Alert>
@@ -71,11 +77,29 @@ export function HomePage() {
       
       {isAuthenticated && (
         <>
-          <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom 
+            align="center" 
+            sx={{ 
+              mb: { xs: 2, sm: 3, md: 4 },
+              fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+            }}
+          >
             ⛩️ NostrShrine
           </Typography>
           
-          <Typography variant="body1" color="text.secondary" paragraph align="center">
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            paragraph 
+            align="center"
+            sx={{ 
+              fontSize: { xs: '0.9rem', sm: '1rem' },
+              px: { xs: 2, sm: 0 },
+            }}
+          >
             Nostrベースの神社へようこそ。参拝しておみくじを引きましょう。
           </Typography>
           
