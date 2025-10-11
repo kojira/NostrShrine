@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { Container, Box, AppBar, Toolbar, Typography, Button, Chip, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, IconButton } from '@mui/material'
+import { Box, AppBar, Toolbar, Typography, Button, Chip, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, IconButton } from '@mui/material'
 import { useState, useEffect } from 'react'
 import PersonIcon from '@mui/icons-material/Person'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
@@ -76,7 +76,8 @@ function AppContent() {
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh', 
+      minHeight: '100vh',
+      width: '100%',
       background: mode === 'dark' 
         ? 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)' 
         : 'linear-gradient(135deg, #F5F5F7 0%, #E5E5EA 100%)',
@@ -262,13 +263,13 @@ function AppContent() {
       </AppBar>
 
       {/* メインコンテンツ */}
-      <Container 
-        maxWidth={false}
+      <Box 
         sx={{ 
           mt: { xs: 2, sm: 3, md: 4 }, 
           mb: { xs: 2, sm: 3, md: 4 }, 
           px: { xs: 2, sm: 3, md: 6, lg: 8 },
           maxWidth: '1920px',
+          width: 'calc(100% - 0px)',
           mx: 'auto',
           flexGrow: 1,
         }}
@@ -279,7 +280,7 @@ function AppContent() {
             {isAuthenticated && <Route path="/admin" element={<AdminPage />} />}
           </Routes>
         </Box>
-      </Container>
+      </Box>
 
       {/* フッター */}
       <Box 
@@ -295,21 +296,19 @@ function AppContent() {
           mt: 'auto',
         }}
       >
-        <Container maxWidth="md">
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            align="center"
-            sx={{
-              background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 600,
-            }}
-          >
-            Powered by Nostr · Built with rust-nostr WASM
-          </Typography>
-        </Container>
+        <Typography 
+          variant="body2" 
+          color="text.secondary" 
+          align="center"
+          sx={{
+            background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 600,
+          }}
+        >
+          Powered by Nostr · Built with rust-nostr WASM
+        </Typography>
       </Box>
     </Box>
   )
