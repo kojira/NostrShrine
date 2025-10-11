@@ -26,15 +26,21 @@ import {
   DialogContent,
   DialogActions,
   Checkbox,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import CodeIcon from '@mui/icons-material/Code'
 import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
 import { useOmikujiList } from '../../hooks/useOmikujiList'
 import { useAuth } from '../../contexts/AuthContext'
 import { useRelay } from '../../contexts/RelayContext'
 import { KIND } from '../../config/constants'
+import type { OmikujiResult } from '../../lib/nostr/events'
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
@@ -52,6 +58,19 @@ export function OmikujiList() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<'selected' | 'single' | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<any>(null)
+  const [editForm, setEditForm] = useState<OmikujiResult>({
+    fortune: '大吉',
+    general: '',
+    love: '',
+    money: '',
+    health: '',
+    work: '',
+    lucky_item: '',
+    lucky_color: '',
+  })
+  const [isSaving, setIsSaving] = useState(false)
   
   useEffect(() => {
     fetchOmikujiList()
@@ -192,6 +211,92 @@ export function OmikujiList() {
     setDeleteConfirmOpen(false)
     setDeleteTarget(null)
     setSelectedItem(null)
+  }
+  
+  // 編集処理
+  const handleEdit = (item: any) => {
+    setEditingItem(item)
+    setEditForm(item.result)
+    setEditDialogOpen(true)
+    handleMenuClose()
+  }
+  
+  const handleEditCancel = () => {
+    setEditDialogOpen(false)
+    setEditingItem(null)
+    setEditForm({
+      fortune: '大吉',
+      general: '',
+      love: '',
+      money: '',
+      health: '',
+      work: '',
+      lucky_item: '',
+      lucky_color: '',
+    })
+  }
+  
+  const handleEditSave = async () => {
+    if (!publicKey || !editingItem) return
+    
+    setIsSaving(true)
+    
+    try {
+      // 1. 古いイベントを削除（NIP-09）
+      const deleteEvent = {
+        id: '',
+        pubkey: publicKey,
+        created_at: Math.floor(Date.now() / 1000),
+        kind: 5,
+        tags: [
+          ['e', editingItem.eventId],
+          ['k', KIND.OMIKUJI_DATA.toString()],
+        ],
+        content: 'おみくじを編集のため削除',
+        sig: '',
+      }
+      
+      if (window.nostr) {
+        const signedDeleteEvent = await window.nostr.signEvent(deleteEvent)
+        await publishEvent(signedDeleteEvent)
+      }
+      
+      // 2. 新しいおみくじを作成（kind 30394）
+      const newEvent = {
+        id: '',
+        pubkey: publicKey,
+        created_at: Math.floor(Date.now() / 1000),
+        kind: KIND.OMIKUJI_DATA,
+        tags: [
+          ['d', editingItem.id], // 同じIDを使用
+          ['fortune', editForm.fortune],
+        ],
+        content: JSON.stringify(editForm),
+        sig: '',
+      }
+      
+      if (window.nostr) {
+        const signedNewEvent = await window.nostr.signEvent(newEvent)
+        await publishEvent(signedNewEvent)
+      }
+      
+      // 3. キャッシュをクリア
+      const { eventCache } = await import('../../lib/cache/eventCache')
+      await eventCache.clearByKind(KIND.OMIKUJI_DATA)
+      
+      // 4. リストを再読み込み
+      setTimeout(() => {
+        fetchOmikujiList()
+      }, 1000)
+      
+      alert('おみくじを更新しました')
+      handleEditCancel()
+    } catch (err) {
+      console.error('[OmikujiList] Edit error:', err)
+      alert('更新に失敗しました')
+    } finally {
+      setIsSaving(false)
+    }
   }
   
   const formatDate = (timestamp: number) => {
@@ -386,6 +491,10 @@ export function OmikujiList() {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
+        <MenuItem onClick={() => selectedItem && handleEdit(selectedItem)}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          編集
+        </MenuItem>
         <MenuItem onClick={handleShowJson}>
           <CodeIcon fontSize="small" sx={{ mr: 1 }} />
           JSONを表示
@@ -565,6 +674,120 @@ export function OmikujiList() {
           </Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             削除
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* 編集ダイアログ */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={handleEditCancel}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          おみくじ編集 ({editingItem?.id})
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>運勢</InputLabel>
+              <Select
+                value={editForm.fortune}
+                label="運勢"
+                onChange={(e) => setEditForm({ ...editForm, fortune: e.target.value as any })}
+                disabled={isSaving}
+              >
+                <MenuItem value="大吉">大吉</MenuItem>
+                <MenuItem value="中吉">中吉</MenuItem>
+                <MenuItem value="小吉">小吉</MenuItem>
+                <MenuItem value="吉">吉</MenuItem>
+                <MenuItem value="末吉">末吉</MenuItem>
+                <MenuItem value="凶">凶</MenuItem>
+                <MenuItem value="大凶">大凶</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              label="総合運"
+              multiline
+              rows={4}
+              value={editForm.general}
+              onChange={(e) => setEditForm({ ...editForm, general: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+              required
+            />
+            
+            <TextField
+              label="恋愛運"
+              multiline
+              rows={2}
+              value={editForm.love}
+              onChange={(e) => setEditForm({ ...editForm, love: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+            />
+            
+            <TextField
+              label="金運"
+              multiline
+              rows={2}
+              value={editForm.money}
+              onChange={(e) => setEditForm({ ...editForm, money: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+            />
+            
+            <TextField
+              label="健康運"
+              multiline
+              rows={2}
+              value={editForm.health}
+              onChange={(e) => setEditForm({ ...editForm, health: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+            />
+            
+            <TextField
+              label="仕事運"
+              multiline
+              rows={2}
+              value={editForm.work}
+              onChange={(e) => setEditForm({ ...editForm, work: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+            />
+            
+            <TextField
+              label="ラッキーアイテム"
+              value={editForm.lucky_item}
+              onChange={(e) => setEditForm({ ...editForm, lucky_item: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+            />
+            
+            <TextField
+              label="ラッキーカラー"
+              value={editForm.lucky_color}
+              onChange={(e) => setEditForm({ ...editForm, lucky_color: e.target.value })}
+              disabled={isSaving}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditCancel} disabled={isSaving}>
+            キャンセル
+          </Button>
+          <Button 
+            onClick={handleEditSave} 
+            color="primary" 
+            variant="contained"
+            disabled={isSaving || !editForm.general}
+            startIcon={isSaving && <CircularProgress size={16} />}
+          >
+            {isSaving ? '保存中...' : '保存'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -186,6 +186,34 @@ class EventCache {
     })
   }
   
+  async clearByKind(kind: number): Promise<void> {
+    await this.init()
+    if (!this.db) return
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite')
+      const store = transaction.objectStore(STORE_NAME)
+      const index = store.index('kind')
+      const request = index.openCursor(IDBKeyRange.only(kind))
+      
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result
+        if (cursor) {
+          cursor.delete()
+          cursor.continue()
+        } else {
+          console.log(`[Cache] Cleared cache for kind ${kind}`)
+          resolve()
+        }
+      }
+      
+      request.onerror = () => {
+        console.error('[Cache] Failed to clear cache by kind:', request.error)
+        reject(request.error)
+      }
+    })
+  }
+  
   async deleteOlderThan(days: number): Promise<void> {
     await this.init()
     if (!this.db) return
