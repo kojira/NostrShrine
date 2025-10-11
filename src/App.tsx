@@ -334,19 +334,32 @@ function AppContent() {
           mt: 'auto',
         }}
       >
-        <Typography 
-          variant="body2" 
-          color="text.secondary" 
-          align="center"
-          sx={{
-            background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 600,
-          }}
-        >
-          Powered by Nostr · Built with rust-nostr WASM
-        </Typography>
+        <Box sx={{ textAlign: 'center' }}>
+          <a
+            href="https://github.com/kojira/NostrShrine"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none' }}
+          >
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{
+                background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                '&:hover': {
+                  opacity: 0.8,
+                  transform: 'translateY(-1px)',
+                }
+              }}
+            >
+              Powered by Nostr · Built with rust-nostr WASM
+            </Typography>
+          </a>
+        </Box>
       </Box>
     </Box>
   )
