@@ -7,11 +7,12 @@ import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 import { RelayProvider } from './contexts/RelayContext'
 import { AdminProvider } from './contexts/AdminContext'
+import { ThemeProvider as CustomThemeProvider, useThemeContext } from './contexts/ThemeContext'
 
-// MUIテーマ設定（NostrAsia風モダンテーマ）
-const theme = createTheme({
+// テーマ作成関数
+export const createAppTheme = (mode: 'dark' | 'light') => createTheme({
   palette: {
-    mode: 'dark',
+    mode,
     primary: {
       main: '#7C3AED', // バイオレット
       light: '#A78BFA',
@@ -22,13 +23,19 @@ const theme = createTheme({
       light: '#F472B6',
       dark: '#BE185D',
     },
-    background: {
+    background: mode === 'dark' ? {
       default: '#0F0F0F', // ディープブラック
       paper: '#1A1A1A', // ダークグレー
+    } : {
+      default: '#F5F5F7', // ライトグレー
+      paper: '#FFFFFF', // ホワイト
     },
-    text: {
+    text: mode === 'dark' ? {
       primary: '#F9FAFB',
       secondary: '#D1D5DB',
+    } : {
+      primary: '#1A1A1A',
+      secondary: '#6B7280',
     },
     success: {
       main: '#10B981',
@@ -103,26 +110,34 @@ const theme = createTheme({
     },
     MuiPaper: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           backgroundImage: 'none',
           borderRadius: 16,
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-        },
+          border: theme.palette.mode === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.05)' 
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        }),
       },
     },
     MuiCard: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           borderRadius: 16,
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-        },
+          border: theme.palette.mode === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.05)' 
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        }),
       },
     },
   },
 })
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+// テーマを使用するラッパーコンポーネント
+function AppWithTheme() {
+  const { mode } = useThemeContext()
+  const theme = createAppTheme(mode)
+
+  return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
@@ -133,5 +148,13 @@ createRoot(document.getElementById('root')!).render(
         </RelayProvider>
       </AuthProvider>
     </ThemeProvider>
+  )
+}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <CustomThemeProvider>
+      <AppWithTheme />
+    </CustomThemeProvider>
   </StrictMode>,
 )

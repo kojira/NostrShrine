@@ -1,13 +1,16 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { Container, Box, AppBar, Toolbar, Typography, Button, Chip, Avatar, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Container, Box, AppBar, Toolbar, Typography, Button, Chip, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, IconButton } from '@mui/material'
 import { useState, useEffect } from 'react'
 import PersonIcon from '@mui/icons-material/Person'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import LogoutIcon from '@mui/icons-material/Logout'
+import Brightness4Icon from '@mui/icons-material/Brightness4'
+import Brightness7Icon from '@mui/icons-material/Brightness7'
 import { useAuth } from './contexts/AuthContext'
 import { useRelay } from './contexts/RelayContext'
 import { useAdminContext } from './contexts/AdminContext'
 import { profileCache } from './lib/cache/profileCache'
+import { useThemeContext } from './contexts/ThemeContext'
 import { HomePage } from './pages/HomePage'
 import { AdminPage } from './pages/AdminPage'
 
@@ -15,6 +18,7 @@ function AppContent() {
   const { isAuthenticated, publicKey, isNIP07Available, login, logout, isLoading } = useAuth()
   const { relays, isConnected, cachedClient } = useRelay()
   const { isAdmin } = useAdminContext()
+  const { mode, toggleTheme } = useThemeContext()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [profile, setProfile] = useState<{ name?: string; display_name?: string; picture?: string } | null>(null)
 
@@ -69,14 +73,25 @@ function AppContent() {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh', 
+      background: mode === 'dark' 
+        ? 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)' 
+        : 'linear-gradient(135deg, #F5F5F7 0%, #E5E5EA 100%)',
+    }}>
       {/* ヘッダー */}
       <AppBar 
         position="static" 
         sx={{ 
-          background: 'rgba(26, 26, 26, 0.8)',
+          background: mode === 'dark' 
+            ? 'rgba(26, 26, 26, 0.8)' 
+            : 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+          borderBottom: mode === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.05)' 
+            : '1px solid rgba(0, 0, 0, 0.08)',
         }} 
         elevation={0}
       >
@@ -97,6 +112,15 @@ function AppContent() {
               ⛩️ <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>NostrShrine</Box>
             </Link>
           </Typography>
+          
+          {/* テーマ切り替えボタン */}
+          <IconButton 
+            onClick={toggleTheme} 
+            color="inherit"
+            sx={{ mr: 1 }}
+          >
+            {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
           
           {relays.length > 0 && (
             <Chip
@@ -239,11 +263,13 @@ function AppContent() {
 
       {/* メインコンテンツ */}
       <Container 
-        maxWidth="xl" 
+        maxWidth={false}
         sx={{ 
           mt: { xs: 2, sm: 3, md: 4 }, 
           mb: { xs: 2, sm: 3, md: 4 }, 
-          px: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 2, sm: 3, md: 6, lg: 8 },
+          maxWidth: '1920px',
+          mx: 'auto',
           flexGrow: 1,
         }}
       >
@@ -258,10 +284,14 @@ function AppContent() {
       {/* フッター */}
       <Box 
         sx={{ 
-          background: 'rgba(26, 26, 26, 0.8)',
+          background: mode === 'dark' 
+            ? 'rgba(26, 26, 26, 0.8)' 
+            : 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(20px)',
-          py: 3, 
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          py: 3,
+          borderTop: mode === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.05)' 
+            : '1px solid rgba(0, 0, 0, 0.08)',
           mt: 'auto',
         }}
       >
