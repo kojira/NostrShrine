@@ -53,8 +53,8 @@ export function VideoGenerator() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   
-  // Sora生成用
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('sora-api-key') || '')
+  // Sora生成用（おみくじと同じAPIキーを使用）
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '')
   const [prompt, setPrompt] = useState(getDefaultShrineVisitPrompt())
   const [size, setSize] = useState<'1280x720' | '1920x1080' | '720x1280' | '1080x1920'>('1280x720')
   const [seconds, setSeconds] = useState(5)
@@ -87,8 +87,8 @@ export function VideoGenerator() {
     }
     
     try {
-      // API Keyを保存
-      localStorage.setItem('sora-api-key', apiKey)
+      // API Keyを保存（おみくじと同じキーを使用）
+      localStorage.setItem('openai_api_key', apiKey)
       
       await generateAndUploadVideo(apiKey, {
         prompt,
@@ -195,7 +195,7 @@ export function VideoGenerator() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               fullWidth
-              helperText="Sora APIを使用するためのOpenAI API Key（ブラウザに保存されます）"
+              helperText="おみくじ生成と共通のAPIキー（ブラウザに保存されます）"
               disabled={isProcessing}
             />
             
