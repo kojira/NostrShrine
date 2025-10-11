@@ -27,17 +27,27 @@ export function useShrineHistory() {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [oldestTimestamp, setOldestTimestamp] = useState<number | null>(null)
   
-  const fetchHistory = useCallback(async (pageNum: number = 1) => {
+  const fetchHistory = useCallback(async (pageNum: number = 1, resetOldest?: boolean) => {
     setIsLoading(true)
     setError(null)
     
     try {
-      // 参拝履歴を取得（ページごと）
-      const limit = PAGE_SIZE
+      // ページ1の場合はoldestTimestampをリセット
+      const currentOldest = (pageNum === 1 || resetOldest) ? null : oldestTimestamp
+      
+      // 参拝履歴を取得（タイムスタンプベースのページング）
+      const filter: any = { kinds: [KIND.SHRINE_VISIT], limit: PAGE_SIZE }
+      if (currentOldest !== null) {
+        // 前回取得した最も古いタイムスタンプより古いものを取得
+        filter.until = currentOldest - 1
+      }
+      
+      console.log(`[History] Fetching page ${pageNum} with filter:`, filter)
       
       const events = await cachedClient.fetchEvents(
-        [{ kinds: [KIND.SHRINE_VISIT], limit }],
+        [filter],
         {
           onCache: async (cached) => {
             // キャッシュから取得できたら即座に表示
@@ -71,8 +81,21 @@ export function useShrineHistory() {
       // 取得件数がPAGE_SIZE未満なら、これ以上データがない
       setHasMore(records.length >= PAGE_SIZE)
       
+      // 最も古いタイムスタンプを記録
+      if (records.length > 0) {
+        const oldest = Math.min(...records.map(r => r.timestamp))
+        setOldestTimestamp(oldest)
+      }
+      
       if (pageNum === 1) {
         setHistory(records)
+        // ページ1の場合はoldestTimestampをリセット
+        if (records.length > 0) {
+          const oldest = Math.min(...records.map(r => r.timestamp))
+          setOldestTimestamp(oldest)
+        } else {
+          setOldestTimestamp(null)
+        }
       } else {
         setHistory(prev => {
           const combined = [...prev, ...records]
@@ -85,13 +108,13 @@ export function useShrineHistory() {
       setPage(pageNum)
       setIsLoading(false)
       
-      console.log(`[History] Loaded ${records.length} shrine visits (page ${pageNum})`)
+      console.log(`[History] Loaded ${records.length} shrine visits (page ${pageNum}), oldest: ${oldestTimestamp}`)
     } catch (err) {
       console.error('[History] Failed to fetch:', err)
       setError('履歴の取得に失敗しました')
       setIsLoading(false)
     }
-  }, [cachedClient])
+  }, [cachedClient, oldestTimestamp])
   
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {

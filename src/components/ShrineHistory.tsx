@@ -38,7 +38,7 @@ export function ShrineHistory() {
   }, [])
   
   const handleRefresh = () => {
-    fetchHistory(1)
+    fetchHistory(1, true) // resetOldest = true でタイムスタンプをリセット
   }
   
   const formatDate = (timestamp: number) => {
