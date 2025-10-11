@@ -84,19 +84,27 @@ VITE_DEFAULT_RELAY=wss://r.kojira.io
 
 ### GitHub Pages デプロイ
 
-GitHub Pagesにデプロイする場合は、リポジトリの **Settings > Secrets and variables > Actions** の **Variables** タブで以下の変数を設定してください：
+GitHub Pagesにデプロイする場合は、環境変数を設定する必要があります。以下のいずれかの方法で設定してください：
 
-- `VITE_ADMIN_PUBKEYS`: 管理者の公開鍵（カンマ区切り）
-  - 例: `npub1abc...,npub1def...` または `hex1,hex2`
-- `VITE_DEFAULT_RELAY`: デフォルトリレー
-  - 例: `wss://r.kojira.io`
+#### 方法1: Environment Variables（推奨）
+リポジトリの **Settings > Environments > github-pages** で設定：
 
-これらの環境変数はビルド時に埋め込まれます。
+1. **Settings** → **Environments** → **github-pages** (なければ作成)
+2. **Environment variables** セクションで **Add variable**
+3. 以下の変数を追加：
+   - `VITE_ADMIN_PUBKEYS`: 管理者の公開鍵（カンマ区切り）
+     - 例: `npub1abc...,npub1def...`
+   - `VITE_DEFAULT_RELAY`: デフォルトリレー
+     - 例: `wss://r.kojira.io`
 
-**設定手順:**
-1. リポジトリの **Settings** → **Secrets and variables** → **Actions**
-2. **Variables** タブをクリック
-3. **New repository variable** で上記の変数を追加
+#### 方法2: Repository Variables
+リポジトリの **Settings > Secrets and variables > Actions** の **Variables** タブで設定：
+
+1. **Settings** → **Secrets and variables** → **Actions**
+2. **Variables** タブで **New repository variable**
+3. 上記と同じ変数を追加
+
+どちらの方法でも動作しますが、Environment Variables の方がデプロイ環境として意味的に適切です。
 
 ## 📱 使い方
 
