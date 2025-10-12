@@ -6,16 +6,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRelay } from '../contexts/RelayContext'
 import { useAdminContext } from '../contexts/AdminContext'
 import type { NostrEvent } from '../lib/nostr/client'
-import type { ShrineVideoData } from '../lib/nostr/events'
-import { KIND } from '../config/constants'
+import type { VideoData } from '../lib/nostr/events'
+import { KIND, type VideoType } from '../config/constants'
 
 export interface VideoListItem {
   id: string // d tag value
   event: NostrEvent
-  data: ShrineVideoData
+  data: VideoData
+  videoType: VideoType
 }
 
-export function useVideoList() {
+export function useVideoList(videoType: VideoType = 'shrine') {
   const { cachedClient } = useRelay()
   const { adminList } = useAdminContext()
   const [videos, setVideos] = useState<VideoListItem[]>([])
@@ -31,10 +32,13 @@ export function useVideoList() {
     setError(null)
     
     try {
+      // 動画タイプに応じたkindを選択
+      const kind = videoType === 'omikuji' ? KIND.OMIKUJI_VIDEO : KIND.SHRINE_VIDEO
+      
       // 管理者の動画イベントを取得
       const events = await cachedClient.fetchEvents([
         {
-          kinds: [KIND.SHRINE_VIDEO],
+          kinds: [kind],
           authors: adminList,
         },
       ])
@@ -43,8 +47,9 @@ export function useVideoList() {
       const videoList: VideoListItem[] = events
         .map((event) => {
           try {
-            const data: ShrineVideoData = JSON.parse(event.content)
+            const data: VideoData = JSON.parse(event.content)
             const dTag = event.tags.find((t) => t[0] === 'd')?.[1]
+            const videoTypeTag = event.tags.find((t) => t[0] === 'video_type')?.[1] as VideoType | undefined
             
             if (!dTag || !data.url) {
               return null
@@ -54,6 +59,7 @@ export function useVideoList() {
               id: dTag,
               event,
               data,
+              videoType: videoTypeTag || data.videoType || videoType, // タグ、データ、フィルター指定の順で優先
             }
           } catch (e) {
             console.error('[VideoList] Failed to parse event:', event.id, e)
@@ -70,7 +76,7 @@ export function useVideoList() {
     } finally {
       setIsLoading(false)
     }
-  }, [cachedClient, adminList])
+  }, [cachedClient, adminList, videoType])
   
   useEffect(() => {
     loadVideos()

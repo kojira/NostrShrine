@@ -31,6 +31,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { VideoCall as VideoCallIcon, Upload as UploadIcon } from '@mui/icons-material'
 import { useVideoManagement } from '../../hooks/useVideoManagement'
 import { getDefaultShrineVisitPrompt, validatePrompt } from '../../services/video/cometapi'
+import { VIDEO_TYPE, type VideoType } from '../../config/constants'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -60,6 +61,9 @@ export function VideoGenerator() {
   const [tabValue, setTabValue] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  
+  // 動画タイプ
+  const [videoType, setVideoType] = useState<VideoType>(VIDEO_TYPE.SHRINE)
   
   // Comet API生成用（専用のAPIキー）
   const [cometApiKey, setCometApiKey] = useState(() => localStorage.getItem('comet_api_key') || '')
@@ -156,9 +160,10 @@ export function VideoGenerator() {
     setSuccess(null)
     
     try {
-      await uploadGeneratedVideo(generatedVideo, generatedPrompt, skipCompression)
+      await uploadGeneratedVideo(generatedVideo, generatedPrompt, videoType, skipCompression)
       
-      setSuccess('動画をアップロードしました！')
+      const typeName = videoType === VIDEO_TYPE.OMIKUJI ? 'おみくじ動画' : '参拝動画'
+      setSuccess(`${typeName}をアップロードしました！`)
       
       // クリーンアップ
       if (generatedVideoUrl) {
@@ -208,9 +213,10 @@ export function VideoGenerator() {
     }
     
     try {
-      await uploadLocalVideo(selectedFile, videoTitle, videoDescription)
+      await uploadLocalVideo(selectedFile, videoType, videoTitle, videoDescription)
       
-      setSuccess('動画をアップロードしました！')
+      const typeName = videoType === VIDEO_TYPE.OMIKUJI ? 'おみくじ動画' : '参拝動画'
+      setSuccess(`${typeName}をアップロードしました！`)
       setSelectedFile(null)
       setVideoTitle('')
       setVideoDescription('')
@@ -235,12 +241,26 @@ export function VideoGenerator() {
     >
       <CardContent>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-          🎥 参拝動画の生成・アップロード
+          🎥 動画の生成・アップロード
         </Typography>
         
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Sora APIで動画を生成するか、ローカルの動画ファイルをアップロードできます
         </Typography>
+        
+        {/* 動画タイプ選択 */}
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel>動画タイプ</InputLabel>
+          <Select
+            value={videoType}
+            onChange={(e) => setVideoType(e.target.value as VideoType)}
+            label="動画タイプ"
+            disabled={isProcessing}
+          >
+            <MenuItem value={VIDEO_TYPE.SHRINE}>⛩️ 参拝動画（参拝後に再生）</MenuItem>
+            <MenuItem value={VIDEO_TYPE.OMIKUJI}>🎴 おみくじ動画（おみくじ後に再生）</MenuItem>
+          </Select>
+        </FormControl>
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>

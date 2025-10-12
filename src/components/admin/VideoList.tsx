@@ -71,7 +71,10 @@ export function VideoList() {
     
     try {
       for (const eventId of selected) {
-        await deleteVideo(eventId)
+        const video = videos.find((v) => v.event.id === eventId)
+        if (video) {
+          await deleteVideo(eventId, video.videoType)
+        }
       }
       
       setSelected(new Set())
@@ -84,7 +87,7 @@ export function VideoList() {
     }
   }
   
-  const handleDeleteOne = async (eventId: string) => {
+  const handleDeleteOne = async (eventId: string, videoType: string) => {
     if (!confirm('この動画を削除しますか？')) {
       return
     }
@@ -93,7 +96,7 @@ export function VideoList() {
     setDeleteError(null)
     
     try {
-      await deleteVideo(eventId)
+      await deleteVideo(eventId, videoType as 'shrine' | 'omikuji')
       await reload()
     } catch (err) {
       console.error('[VideoList] Failed to delete:', err)
@@ -177,6 +180,7 @@ export function VideoList() {
                       onChange={handleSelectAll}
                     />
                   </TableCell>
+                  <TableCell>タイプ</TableCell>
                   <TableCell>タイトル</TableCell>
                   <TableCell>長さ</TableCell>
                   <TableCell>作成日時</TableCell>
@@ -191,6 +195,14 @@ export function VideoList() {
                       <Checkbox
                         checked={selected.has(video.event.id)}
                         onChange={() => handleSelect(video.event.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={video.videoType === 'omikuji' ? '🎴 おみくじ' : '⛩️ 参拝'}
+                        size="small"
+                        color={video.videoType === 'omikuji' ? 'secondary' : 'primary'}
+                        variant="outlined"
                       />
                     </TableCell>
                     <TableCell>
@@ -232,7 +244,7 @@ export function VideoList() {
                     <TableCell align="right">
                       <IconButton
                         size="small"
-                        onClick={() => handleDeleteOne(video.event.id)}
+                        onClick={() => handleDeleteOne(video.event.id, video.videoType)}
                         disabled={isDeleting}
                         color="error"
                       >

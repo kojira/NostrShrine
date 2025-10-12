@@ -5,17 +5,18 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRelay } from '../contexts/RelayContext'
-import { createShrineVideoEvent, type ShrineVideoData } from '../lib/nostr/events'
+import { createVideoEvent, type VideoData } from '../lib/nostr/events'
 import type { NostrEvent } from '../lib/nostr/client'
 import { generateVideoWithCometAPI, type CometVideoGenerationOptions } from '../services/video/cometapi'
 import { compressVideo } from '../services/video/compression'
 import { uploadToShareYabume } from '../services/upload/nip96'
-import { KIND } from '../config/constants'
+import { KIND, type VideoType } from '../config/constants'
 
 export interface VideoRecord {
   id: string
   event: NostrEvent
-  data: ShrineVideoData
+  data: VideoData
+  videoType: VideoType
 }
 
 export function useVideoManagement() {
@@ -66,6 +67,7 @@ export function useVideoManagement() {
     async (
       file: File,
       prompt: string,
+      videoType: VideoType = 'shrine',
       skipCompression?: boolean,
       title?: string,
       description?: string
@@ -103,20 +105,25 @@ export function useVideoManagement() {
         
         // 2. Nostrイベント作成
         const videoId = `video-${Date.now()}`
-        const videoData: ShrineVideoData = {
+        const videoData: VideoData = {
           url: videoUrl,
           title: title || prompt.substring(0, 50),
           description: description || prompt,
           mimeType: file.type,
           prompt: prompt,
+          videoType: videoType,
         }
         
-        const event = await createShrineVideoEvent(publicKey, videoId, videoData)
+        const event = await createVideoEvent(publicKey, videoId, videoData, videoType)
         
         // 3. リレーに送信
         if (cachedClient) {
           await cachedClient.publishEvent(event)
         }
+        
+        // 4. キャッシュをクリア（対応するkindのみ）
+        const kind = videoType === 'omikuji' ? KIND.OMIKUJI_VIDEO : KIND.SHRINE_VIDEO
+        await cachedClient.eventCache.clearByKind(kind)
         
         setProgress('')
         setIsUploading(false)
@@ -125,6 +132,7 @@ export function useVideoManagement() {
           id: videoId,
           event,
           data: videoData,
+          videoType,
         }
       } catch (error) {
         setIsUploading(false)
@@ -139,7 +147,12 @@ export function useVideoManagement() {
    * ローカル動画ファイルをアップロード
    */
   const uploadLocalVideo = useCallback(
-    async (file: File, title?: string, description?: string): Promise<VideoRecord> => {
+    async (
+      file: File,
+      videoType: VideoType = 'shrine',
+      title?: string,
+      description?: string
+    ): Promise<VideoRecord> => {
       if (!publicKey) {
         throw new Error('Not authenticated')
       }
@@ -162,19 +175,24 @@ export function useVideoManagement() {
         
         // 3. Nostrイベント作成
         const videoId = `video-${Date.now()}`
-        const videoData: ShrineVideoData = {
+        const videoData: VideoData = {
           url: videoUrl,
           title: title || file.name,
           description,
           mimeType: compressedVideo.type,
+          videoType: videoType,
         }
         
-        const event = await createShrineVideoEvent(publicKey, videoId, videoData)
+        const event = await createVideoEvent(publicKey, videoId, videoData, videoType)
         
         // 4. リレーに送信
         if (cachedClient) {
           await cachedClient.publishEvent(event)
         }
+        
+        // 5. キャッシュをクリア（対応するkindのみ）
+        const kind = videoType === 'omikuji' ? KIND.OMIKUJI_VIDEO : KIND.SHRINE_VIDEO
+        await cachedClient.eventCache.clearByKind(kind)
         
         setProgress('')
         setIsUploading(false)
@@ -183,6 +201,7 @@ export function useVideoManagement() {
           id: videoId,
           event,
           data: videoData,
+          videoType,
         }
       } catch (error) {
         setIsUploading(false)
@@ -197,7 +216,7 @@ export function useVideoManagement() {
    * 動画を削除（NIP-09）
    */
   const deleteVideo = useCallback(
-    async (eventId: string): Promise<void> => {
+    async (eventId: string, videoType: VideoType): Promise<void> => {
       if (!publicKey || !cachedClient) {
         throw new Error('Not authenticated or no relay connection')
       }
@@ -215,8 +234,9 @@ export function useVideoManagement() {
       // リレーに送信
       await cachedClient.publishEvent(deleteEvent)
       
-      // キャッシュをクリア
-      await cachedClient.eventCache.clearByKind(KIND.SHRINE_VIDEO)
+      // キャッシュをクリア（対応するkindのみ）
+      const kind = videoType === 'omikuji' ? KIND.OMIKUJI_VIDEO : KIND.SHRINE_VIDEO
+      await cachedClient.eventCache.clearByKind(kind)
     },
     [publicKey, cachedClient]
   )

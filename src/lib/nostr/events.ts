@@ -129,9 +129,9 @@ export async function createOmikujiDataEvent(
 }
 
 /**
- * 参拝動画イベントデータ
+ * 動画イベントデータ
  */
-export interface ShrineVideoData {
+export interface VideoData {
   url: string
   title?: string
   description?: string
@@ -140,32 +140,42 @@ export interface ShrineVideoData {
   height?: number
   mimeType?: string
   prompt?: string // Soraで生成した場合のプロンプト
+  videoType?: 'shrine' | 'omikuji' // 動画タイプ
 }
 
+// 後方互換性のためのエイリアス
+export type ShrineVideoData = VideoData
+
 /**
- * 参拝動画イベント作成（管理者が動画をアップロードして登録）
+ * 動画イベント作成（管理者が動画をアップロードして登録）
  */
-export async function createShrineVideoEvent(
+export async function createVideoEvent(
   publicKey: string,
   videoId: string,
-  data: ShrineVideoData
+  data: VideoData,
+  videoType: 'shrine' | 'omikuji' = 'shrine'
 ): Promise<NostrEvent> {
+  const kind = videoType === 'omikuji' ? KIND.OMIKUJI_VIDEO : KIND.SHRINE_VIDEO
+  const defaultTitle = videoType === 'omikuji' ? 'おみくじ動画' : '参拝動画'
+  
   const content = JSON.stringify({
     url: data.url,
-    title: data.title || '参拝動画',
+    title: data.title || defaultTitle,
     description: data.description,
     duration: data.duration,
     width: data.width,
     height: data.height,
     mime_type: data.mimeType,
     prompt: data.prompt,
+    video_type: videoType,
     created_at: Date.now(),
   })
   
-  const builder = new EventBuilder(KIND.SHRINE_VIDEO, content)
+  const builder = new EventBuilder(kind, content)
   builder.addTag('d', [videoId])
   builder.addTag('url', [data.url])
-  builder.addTag('title', [data.title || '参拝動画'])
+  builder.addTag('title', [data.title || defaultTitle])
+  builder.addTag('video_type', [videoType])
   
   if (data.mimeType) {
     builder.addTag('m', [data.mimeType])
@@ -173,5 +183,16 @@ export async function createShrineVideoEvent(
   
   const unsigned = await builder.toUnsignedEvent(publicKey)
   return await nip07.signEvent(unsigned)
+}
+
+/**
+ * 参拝動画イベント作成（後方互換性のため残す）
+ */
+export async function createShrineVideoEvent(
+  publicKey: string,
+  videoId: string,
+  data: ShrineVideoData
+): Promise<NostrEvent> {
+  return createVideoEvent(publicKey, videoId, data, 'shrine')
 }
 

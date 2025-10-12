@@ -17,7 +17,16 @@ export const KIND = {
   APP_SETTINGS: 10394,       // アプリ設定（replaceable）
   OMIKUJI_DATA: 30394,       // おみくじデータ（parameterized replaceable）
   SHRINE_VIDEO: 30395,       // 参拝動画（parameterized replaceable）
+  OMIKUJI_VIDEO: 30396,      // おみくじ動画（parameterized replaceable）
 } as const
+
+// 動画タイプ
+export const VIDEO_TYPE = {
+  SHRINE: 'shrine',          // 参拝動画
+  OMIKUJI: 'omikuji',        // おみくじ動画
+} as const
+
+export type VideoType = typeof VIDEO_TYPE[keyof typeof VIDEO_TYPE]
 
 // アプリケーション設定のdタグ
 export const D_TAG = {
