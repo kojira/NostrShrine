@@ -68,6 +68,93 @@ http://localhost:5173 でアプリケーションが起動します。
 pnpm run build
 ```
 
+## 🦀 WASMビルド手順
+
+このプロジェクトは `rust-nostr` をWASMバインディングとして使用しています。
+
+### 前提条件
+
+```bash
+# Rustのインストール（未インストールの場合）
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# wasm-packのインストール
+cargo install wasm-pack
+
+# wasm32ターゲットの追加
+rustup target add wasm32-unknown-unknown
+```
+
+### WASMのビルド
+
+```bash
+# rust-nostr-wasmディレクトリに移動
+cd rust-nostr-wasm
+
+# WASMをビルド（web target、出力先は ../src/wasm）
+wasm-pack build --target web --out-dir ../src/wasm
+
+# プロジェクトルートに戻る
+cd ..
+```
+
+### ビルド成果物
+
+ビルドが成功すると、`src/wasm/` ディレクトリに以下のファイルが生成されます：
+
+- `rust_nostr_wasm.js` - JavaScriptバインディング
+- `rust_nostr_wasm_bg.wasm` - WebAssemblyバイナリ
+- `rust_nostr_wasm_bg.wasm.d.ts` - TypeScript型定義
+- `rust_nostr_wasm.d.ts` - TypeScript型定義
+- `package.json` - パッケージメタデータ
+
+### トラブルシューティング
+
+#### ビルドエラー: `error: linker 'cc' not found`
+
+```bash
+# macOS
+xcode-select --install
+
+# Ubuntu/Debian
+sudo apt-get install build-essential
+
+# Fedora/RHEL
+sudo dnf install gcc
+```
+
+#### ビルドエラー: `wasm-opt not found`
+
+```bash
+# wasm-optはwasm-packに含まれているはずですが、手動インストールも可能
+cargo install wasm-opt
+```
+
+#### WASMファイルが大きすぎる場合
+
+リリースビルドで最適化：
+
+```bash
+cd rust-nostr-wasm
+wasm-pack build --target web --out-dir ../src/wasm --release
+cd ..
+```
+
+#### 開発中のWASM再ビルド
+
+WASMコードを変更した場合は、再ビルドが必要です：
+
+```bash
+cd rust-nostr-wasm && wasm-pack build --target web --out-dir ../src/wasm && cd ..
+```
+
+### GitHub Actionsでの自動ビルド
+
+このプロジェクトでは、GitHub Actionsが自動的にWASMをビルドします。
+`.github/workflows/deploy.yml` を参照してください。
+
+手動でビルドする必要があるのは、ローカル開発時のみです。
+
 ## 🔧 環境変数
 
 ### ローカル開発
