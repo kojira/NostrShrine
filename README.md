@@ -87,14 +87,27 @@ rustup target add wasm32-unknown-unknown
 
 ### WASMのビルド
 
+**重要**: macOSでは、HomebrewのLLVMが必要です。
+
 ```bash
+# Homebrew LLVM をインストール（macOSのみ）
+brew install llvm
+
 # rust-nostr-wasmディレクトリに移動
 cd rust-nostr-wasm
 
-# WASMをビルド（web target、出力先は ../src/wasm）
-wasm-pack build --target web --out-dir ../src/wasm
+# WASMをビルド（Homebrew LLVMを使用）
+CC=/opt/homebrew/opt/llvm/bin/clang AR=/opt/homebrew/opt/llvm/bin/llvm-ar wasm-pack build --target web --out-dir ../src/wasm
 
 # プロジェクトルートに戻る
+cd ..
+```
+
+**Linux/GitHub Actions**: 環境変数なしで直接ビルドできます。
+
+```bash
+cd rust-nostr-wasm
+wasm-pack build --target web --out-dir ../src/wasm
 cd ..
 ```
 
@@ -109,6 +122,19 @@ cd ..
 - `package.json` - パッケージメタデータ
 
 ### トラブルシューティング
+
+#### macOS: `error: unable to create target: 'No available targets are compatible with triple "wasm32-unknown-unknown"'`
+
+macOSのシステムclangはWASMターゲットをサポートしていません。Homebrew LLVMをインストールしてください：
+
+```bash
+brew install llvm
+
+# 環境変数を設定してビルド
+cd rust-nostr-wasm
+CC=/opt/homebrew/opt/llvm/bin/clang AR=/opt/homebrew/opt/llvm/bin/llvm-ar wasm-pack build --target web --out-dir ../src/wasm
+cd ..
+```
 
 #### ビルドエラー: `error: linker 'cc' not found`
 
@@ -132,11 +158,11 @@ cargo install wasm-opt
 
 #### WASMファイルが大きすぎる場合
 
-リリースビルドで最適化：
+リリースビルドで最適化（デフォルトで有効）：
 
 ```bash
 cd rust-nostr-wasm
-wasm-pack build --target web --out-dir ../src/wasm --release
+CC=/opt/homebrew/opt/llvm/bin/clang AR=/opt/homebrew/opt/llvm/bin/llvm-ar wasm-pack build --target web --out-dir ../src/wasm --release
 cd ..
 ```
 
@@ -145,15 +171,17 @@ cd ..
 WASMコードを変更した場合は、再ビルドが必要です：
 
 ```bash
+# macOS
+cd rust-nostr-wasm && CC=/opt/homebrew/opt/llvm/bin/clang AR=/opt/homebrew/opt/llvm/bin/llvm-ar wasm-pack build --target web --out-dir ../src/wasm && cd ..
+
+# Linux
 cd rust-nostr-wasm && wasm-pack build --target web --out-dir ../src/wasm && cd ..
 ```
 
 ### GitHub Actionsでの自動ビルド
 
-このプロジェクトでは、GitHub Actionsが自動的にWASMをビルドします。
+GitHub Actions (ubuntu-latest) では、システムのclangがWASMターゲットをサポートしているため、環境変数なしでビルドできます。
 `.github/workflows/deploy.yml` を参照してください。
-
-手動でビルドする必要があるのは、ローカル開発時のみです。
 
 ## 🔧 環境変数
 
