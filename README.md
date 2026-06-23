@@ -1,5 +1,7 @@
 # ⛩️ NostrShrine
 
+🔗 **Live:** https://kojira.github.io/NostrShrine/
+
 Nostr上で動作する、完全フロントエンドの神社アプリケーション。参拝記録やおみくじをNostrのイベントとして管理します。
 
 ## 🌟 特徴
